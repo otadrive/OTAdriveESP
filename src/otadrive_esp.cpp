@@ -1,15 +1,19 @@
 #include "otadrive_esp.h"
 
 otadrive_ota OTADRIVE;
+otadrive_ota::THandlerFunction_Progress otadrive_ota::_progress_callback = nullptr;
 
 otadrive_ota::otadrive_ota()
 {
-    
 }
 
-void otadrive_ota::setInfo(String ProductKey, String Version)
+/**
+ * Sets ApiKey and current firmware version of your device
+ *
+ */
+void otadrive_ota::setInfo(String ApiKey, String Version)
 {
-    this->ProductKey = ProductKey;
+    this->ProductKey = ApiKey;
     this->Version = Version;
 }
 
@@ -18,6 +22,11 @@ String otadrive_ota::baseParams()
     return "k=" + ProductKey + "&v=" + Version + "&s=" + getChipId();
 }
 
+/**
+ * Returns your chip ID
+ *
+ * @return string of your unique chipID
+ */
 String otadrive_ota::getChipId()
 {
 #ifdef ESP8266
@@ -31,8 +40,6 @@ String otadrive_ota::getChipId()
 
 String otadrive_ota::downloadResourceList()
 {
-    WiFiClient client;
-    HTTPClient http;
     String url = OTADRIVE_URL "resource/list?plain&";
     url += baseParams();
 
@@ -52,8 +59,6 @@ String otadrive_ota::head(String url, const char *reqHdrs[1], uint8_t reqHdrsCou
 #endif
     http.setTimeout(TIMEOUT_MS);
 
-    otd_log_i("heading : %s", url.c_str());
-
     if (http.begin(client, url))
     {
         http.collectHeaders(reqHdrs, reqHdrsCount);
@@ -71,8 +76,6 @@ String otadrive_ota::head(String url, const char *reqHdrs[1], uint8_t reqHdrsCou
         {
             otd_log_e("downloaded error %d, %s", httpCode, http.errorToString(httpCode).c_str());
         }
-
-        otd_log_i("\n");
     }
 
     return "";
@@ -88,8 +91,6 @@ bool otadrive_ota::download(String url, File *file, String *outStr)
     http.setConnectTimeout(TIMEOUT_MS);
 #endif
     http.setTimeout(TIMEOUT_MS);
-
-    otd_log_i("downloading : %s", url.c_str());
 
     if (http.begin(client, url))
     {
@@ -123,20 +124,34 @@ bool otadrive_ota::download(String url, File *file, String *outStr)
         {
             otd_log_e("downloaded error %d, %s, %s", httpCode, http.errorToString(httpCode).c_str(), http.getString().c_str());
         }
-
-        otd_log_i("\n");
     }
 
     return false;
 }
 
-void otadrive_ota::setFileSystem(FS fileObj)
+/**
+ * Call update API of the OTAdrive server and gets information about new firmware
+ * 
+ * @return updateInfo object, contains information about new version on server
+ */
+void otadrive_ota::setFileSystem(FS *fileObj)
 {
-    this->fileObj = &fileObj;
+    this->fileObj = fileObj;
 }
 
+/**
+ * Call resource API of the OTAdrive server and sync local files with server
+ *
+ * @return returns success if no error happens in the procedure
+ */
 bool otadrive_ota::syncResources()
 {
+    if (fileObj == nullptr)
+    {
+        otd_log_e("file system doesn't set, call setFileSystem() in setup");
+        return false;
+    }
+
     String list = downloadResourceList();
     String baseurl = OTADRIVE_URL "resource/get?";
     baseurl += baseParams();
@@ -186,6 +201,11 @@ bool otadrive_ota::syncResources()
     return true;
 }
 
+/**
+ * Call alive API of the OTAdrive server and sends some device info
+ *
+ * @return returns success if no error happens in procedure
+ */
 bool otadrive_ota::sendAlive()
 {
     String url = OTADRIVE_URL "alive?";
@@ -193,6 +213,11 @@ bool otadrive_ota::sendAlive()
     return download(url, nullptr, nullptr);
 }
 
+/**
+ * Call update API of the OTAdrive server and download new firmware version if available
+ * If new version download you never get out of this function. MCU will reboot
+ * 
+ */
 void otadrive_ota::updateFirmware()
 {
     updateInfo inf = updateFirmwareInfo();
@@ -205,7 +230,7 @@ void otadrive_ota::updateFirmware()
 
     WiFiClient client;
 
-    Update.onProgress(onUpdateFirmwareProgress);
+    Update.onProgress(updateFirmwareProgress);
     updateObj.rebootOnUpdate(false);
     t_httpUpdate_return ret = updateObj.update(client, url, Version);
 
@@ -230,19 +255,26 @@ void otadrive_ota::updateFirmware()
     }
 }
 
-void otadrive_ota::onUpdateFirmwareProgress(int progress, int totalt)
+/**
+ * Set callback for onProgress during firmware update 
+ * 
+ */
+void otadrive_ota::onUpdateFirmwareProgress(THandlerFunction_Progress fn)
 {
-    static int last = 0;
-    int progressPercent = (100 * progress) / totalt;
-    otd_log_i("*");
-    if (last != progressPercent && progressPercent % 10 == 0)
-    {
-        //print every 10%
-        otd_log_i("%d", progressPercent);
-    }
-    last = progressPercent;
+    _progress_callback = fn;
 }
 
+void otadrive_ota::updateFirmwareProgress(int progress, int totalt)
+{
+    if (_progress_callback != nullptr)
+        _progress_callback(progress, totalt);
+}
+
+/**
+ * Call update API of the OTAdrive server and gets information about new firmware
+ * 
+ * @return updateInfo object, contains information about new version on server
+ */
 updateInfo otadrive_ota::updateFirmwareInfo()
 {
     String url = OTADRIVE_URL "update?";
@@ -252,6 +284,7 @@ updateInfo otadrive_ota::updateFirmwareInfo()
     otd_log_i("heads \n%s ", r.c_str());
 
     updateInfo inf;
+    inf.size = 0;
     while (r.length())
     {
         String hline = cutLine(r);
@@ -268,6 +301,24 @@ updateInfo otadrive_ota::updateFirmwareInfo()
     }
 
     inf.available = inf.version != Version;
+    if (r.length() == 0)
+        inf.available = false;
 
     return inf;
+}
+
+/**
+ * Call configuration API of the OTAdrive server and gets device configuration as string
+ * 
+ * @return configuration of device as String
+ */
+String otadrive_ota::getConfigs()
+{
+    String url = OTADRIVE_URL "getconfig?";
+    url += baseParams();
+
+    String conf;
+    download(url, nullptr, &conf);
+
+    return conf;
 }

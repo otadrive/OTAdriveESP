@@ -1,0 +1,1 @@
+Official library to use OTAdrive services in ESP8266/ESP32 arduino platform

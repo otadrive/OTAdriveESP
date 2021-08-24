@@ -223,7 +223,10 @@ void otadrive_ota::updateFirmware()
     updateInfo inf = updateFirmwareInfo();
 
     if (!inf.available)
+    {
+        otd_log_i("No new firmware available");
         return;
+    }
 
     String url = OTADRIVE_URL "update?";
     url += baseParams();
@@ -252,6 +255,9 @@ void otadrive_ota::updateFirmware()
         ESP.restart();
         break;
     }
+    default:
+        otd_log_i("HTTP_UPDATE_CODE: %d", ret);
+        break;
     }
 }
 
@@ -285,6 +291,15 @@ updateInfo otadrive_ota::updateFirmwareInfo()
 
     updateInfo inf;
     inf.size = 0;
+    inf.version = "";
+
+    if (r.length() == 0)
+    {
+        inf.available = false;
+        otd_log_i("required headers not available\n%s ", r.c_str());
+        return inf;
+    }
+
     while (r.length())
     {
         String hline = cutLine(r);
@@ -301,8 +316,6 @@ updateInfo otadrive_ota::updateFirmwareInfo()
     }
 
     inf.available = inf.version != Version;
-    if (r.length() == 0)
-        inf.available = false;
 
     return inf;
 }

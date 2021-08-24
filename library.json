@@ -1,6 +1,6 @@
 {
   "name": "OTAdrive",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "OTAdrive official library for ESP8266/ESP32 in Arduino platform",
   "keywords": "OTAdrive, OTA",
   "repository":

@@ -7,7 +7,6 @@
 void update();
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
 void onUpdateProgress(int progress, int totalt);
-uint32_t loopCounter = 0;
 
 #ifdef ESP8266
 #define FILESYS LittleFS
@@ -34,7 +33,6 @@ void setup()
   Serial.println(WiFi.localIP());
 
   // initialize FileSystem
-  OTADRIVE.setFileSystem(&FILESYS);
 #ifdef ESP8266
   if (!LittleFS.begin())
   {
@@ -61,10 +59,9 @@ void loop()
   delay(1000);
   if (WiFi.status() == WL_CONNECTED)
   {
-    loopCounter++;
-    if (loopCounter > 30)
+    // Every 30 seconds
+    if(OTADRIVE.timeTick(30))
     {
-      loopCounter = 0;
       digitalWrite(2, HIGH);
       delay(100);
       digitalWrite(2, LOW);
@@ -82,7 +79,7 @@ void loop()
       // sync local files with OTAdrive server
       OTADRIVE.syncResources();
       // list local files to serial port
-      listDir(FILESYS, "/", 0);
+      listDir(OTA_FILE_SYS, "/", 0);
 
       // get configuration of device
       String c = OTADRIVE.getConfigs();

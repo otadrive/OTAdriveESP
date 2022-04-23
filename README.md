@@ -1,5 +1,7 @@
 Official library to use OTAdrive services in ESP8266/ESP32 arduino platform
 
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/otadrive/library/OTAdrive.svg)](https://registry.platformio.org/libraries/otadrive/OTAdrive)
+
 ## Arduino library
 OTAdrive Arduino library provides all features of our service with user friendly interface.
 The library exists on both [Arduino repository](https://github.com/otadrive/OTAdriveESP) and [PlatformIO registry](https://platformio.org/lib/show/12450/OTAdrive).  

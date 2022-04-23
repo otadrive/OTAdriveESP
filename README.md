@@ -159,27 +159,31 @@ You can find a complete example [Here](https://github.com/otadrive/OTAdriveESP/t
 
 The following code shows all features of this library:
 ```cpp
-// retrive firmware info from OTAdrive server
-updateInfo inf = OTADRIVE.updateFirmwareInfo();
-// update firmware if newer available
-if (inf.available)
+// do it every 5 minutes (300 seconds)
+if(OTADRIVE.timeTick(300))
 {
-  Serial.printf("\nNew version available: %s, %dBytes\n",inf.version.c_str(), inf.size);
-  OTADRIVE.updateFirmware();
-}
-else
-{
-  Serial.println("No newer version");
-}
+    // retrive firmware info from OTAdrive server
+    updateInfo inf = OTADRIVE.updateFirmwareInfo();
+    // update firmware if newer available
+    if (inf.available)
+    {
+        Serial.printf("\nNew version available: %s, %dBytes\n",inf.version.c_str(), inf.size);
+        OTADRIVE.updateFirmware();
+    }
+    else
+    {
+        Serial.println("No newer version");
+    }
 
-// sync local files with OTAdrive server
-OTADRIVE.syncResources();
-// list local files to serial port
-listDir(FILESYS, "/", 0);
+    // sync local files with OTAdrive server
+    OTADRIVE.syncResources();
+    // list local files to serial port
+    listDir(FILESYS, "/", 0);
 
-// get configuration of device
-String c = OTADRIVE.getConfigs();
-Serial.printf("\nconfiguration: %s\n", c.c_str());
+    // get configuration of device
+    String c = OTADRIVE.getConfigs();
+    Serial.printf("\nconfiguration: %s\n", c.c_str());
+}
 ```
 
 # Changes History

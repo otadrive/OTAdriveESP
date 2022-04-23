@@ -9,12 +9,6 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
 void onUpdateProgress(int progress, int totalt);
 uint32_t loopCounter = 0;
 
-#ifdef ESP8266
-#define FILESYS LittleFS
-#elif defined(ESP32)
-#define FILESYS SPIFFS
-#endif
-
 void setup()
 {
   Serial.begin(115200);
@@ -98,7 +92,7 @@ void onUpdateProgress(int progress, int totalt)
   Serial.print("*");
   if (last != progressPercent && progressPercent % 10 == 0)
   {
-    //print every 10%
+    // print every 10%
     Serial.printf("%d", progressPercent);
   }
   last = progressPercent;

@@ -8,29 +8,59 @@
 #include <ESP8266httpUpdate.h>
 #include <LittleFS.h>
 #define updateObj ESPhttpUpdate
-// #define fileObj LittleFS
+#define OTA_FILE_SYS LittleFS
 #elif defined(ESP32)
 #include <HTTPUpdate.h>
 #include <SPIFFS.h>
 #define updateObj httpUpdate
-// #define fileObj SPIFFS
+#define OTA_FILE_SYS SPIFFS
 #endif
 
 #ifndef OTADRIVE_URL
 #define OTADRIVE_URL "http://otadrive.com/deviceapi/"
 #endif
 
-class updateInfo
+class otadrive_ota;
+class updateInfo;
+
+enum class update_result : int
 {
+    ConnectError = 0,
+    DeviceUnauthorized = 401,
+    AlreadyUpToDate = 304,
+    NoFirmwareExists = 404,
+    Success = 200
+};
+
+class updateInfo : public Printable
+{
+    const char *code_str() const;
+    String old_version;
+
 public:
     bool available;
     String version;
     int size;
+    update_result code;
+
+    virtual size_t printTo(Print &p) const;
+    String toString() const;
+
+    friend class otadrive_ota;
+};
+
+class device_status
+{
+    float battery_voltage;
+    bool power_plugged;
+    double latitude;
+    double longitude;
 };
 
 class otadrive_ota
 {
 private:
+    uint32_t tickTimestamp = 0;
     const uint16_t TIMEOUT_MS = 10000;
     String ProductKey;
     String Version;
@@ -38,7 +68,7 @@ private:
     String cutLine(String &str);
     String baseParams();
     bool download(String url, File *file, String *outStr);
-    String head(String url, const char *reqHdrs[1], uint8_t reqHdrsCount);
+    update_result head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount);
     String file_md5(File &f);
     String downloadResourceList();
 
@@ -54,13 +84,15 @@ public:
 
     bool sendAlive();
 
-    void updateFirmware();
+    updateInfo updateFirmware(bool reboot = true);
     updateInfo updateFirmwareInfo();
     void onUpdateFirmwareProgress(THandlerFunction_Progress fn);
 
     bool syncResources();
     void setFileSystem(FS *fileObj);
     String getConfigs();
+
+    bool timeTick(uint16_t seconds);
 
 private:
     static THandlerFunction_Progress _progress_callback;

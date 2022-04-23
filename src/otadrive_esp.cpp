@@ -5,6 +5,9 @@ otadrive_ota::THandlerFunction_Progress otadrive_ota::_progress_callback = nullp
 
 otadrive_ota::otadrive_ota()
 {
+#ifdef OTA_FILE_SYS
+    setFileSystem(&OTA_FILE_SYS);
+#endif
 }
 
 /**
@@ -48,7 +51,7 @@ String otadrive_ota::downloadResourceList()
     return res;
 }
 
-String otadrive_ota::head(String url, const char *reqHdrs[1], uint8_t reqHdrsCount)
+update_result otadrive_ota::head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount)
 {
     WiFiClient client;
     HTTPClient http;
@@ -70,15 +73,23 @@ String otadrive_ota::head(String url, const char *reqHdrs[1], uint8_t reqHdrsCou
             String hdrs = "";
             for (uint8_t i = 0; i < http.headers(); i++)
                 hdrs += http.headerName(i) + ": " + http.header(i) + "\n";
-            return hdrs;
+            resultStr = hdrs;
         }
         else
         {
             otd_log_e("downloaded error %d, %s", httpCode, http.errorToString(httpCode).c_str());
+            if (httpCode == 404)
+                return update_result::NoFirmwareExists;
+            else if (httpCode == 304)
+                return update_result::AlreadyUpToDate;
+            else if (httpCode == 401)
+                return update_result::DeviceUnauthorized;
+            return update_result::ConnectError;
         }
     }
 
-    return "";
+    resultStr = "";
+    return update_result::ConnectError;
 }
 
 bool otadrive_ota::download(String url, File *file, String *outStr)
@@ -131,7 +142,7 @@ bool otadrive_ota::download(String url, File *file, String *outStr)
 
 /**
  * Call update API of the OTAdrive server and gets information about new firmware
- * 
+ *
  * @return updateInfo object, contains information about new version on server
  */
 void otadrive_ota::setFileSystem(FS *fileObj)
@@ -216,16 +227,16 @@ bool otadrive_ota::sendAlive()
 /**
  * Call update API of the OTAdrive server and download new firmware version if available
  * If new version download you never get out of this function. MCU will reboot
- * 
+ *
  */
-void otadrive_ota::updateFirmware()
+updateInfo otadrive_ota::updateFirmware(bool reboot)
 {
     updateInfo inf = updateFirmwareInfo();
 
     if (!inf.available)
     {
         otd_log_i("No new firmware available");
-        return;
+        return inf;
     }
 
     String url = OTADRIVE_URL "update?";
@@ -252,18 +263,21 @@ void otadrive_ota::updateFirmware()
         Version = inf.version;
         sendAlive();
         otd_log_i("HTTP_UPDATE_OK");
-        ESP.restart();
+        if (reboot)
+            ESP.restart();
         break;
     }
     default:
         otd_log_i("HTTP_UPDATE_CODE: %d", ret);
         break;
     }
+
+    return inf;
 }
 
 /**
- * Set callback for onProgress during firmware update 
- * 
+ * Set callback for onProgress during firmware update
+ *
  */
 void otadrive_ota::onUpdateFirmwareProgress(THandlerFunction_Progress fn)
 {
@@ -278,7 +292,7 @@ void otadrive_ota::updateFirmwareProgress(int progress, int totalt)
 
 /**
  * Call update API of the OTAdrive server and gets information about new firmware
- * 
+ *
  * @return updateInfo object, contains information about new version on server
  */
 updateInfo otadrive_ota::updateFirmwareInfo()
@@ -286,17 +300,23 @@ updateInfo otadrive_ota::updateFirmwareInfo()
     String url = OTADRIVE_URL "update?";
     url += baseParams();
     const char *reqHdrs[2] = {"X-Version", "Content-Length"};
-    String r = head(url, reqHdrs, 2);
-    otd_log_i("heads \n%s ", r.c_str());
+    String r;
+    update_result ures = head(url, r, reqHdrs, 2);
+    otd_log_i("heads [%d] \n%s ", (int)ures, r.c_str());
 
     updateInfo inf;
+    inf.available = false;
     inf.size = 0;
+    inf.code = ures;
     inf.version = "";
+    if (ures != update_result::Success)
+        return inf;
 
     if (r.length() == 0)
     {
         inf.available = false;
         otd_log_i("required headers not available\n%s ", r.c_str());
+        inf.code = update_result::ConnectError;
         return inf;
     }
 
@@ -316,13 +336,14 @@ updateInfo otadrive_ota::updateFirmwareInfo()
     }
 
     inf.available = inf.version != Version;
+    inf.code = update_result::Success;
 
     return inf;
 }
 
 /**
  * Call configuration API of the OTAdrive server and gets device configuration as string
- * 
+ *
  * @return configuration of device as String
  */
 String otadrive_ota::getConfigs()
@@ -334,4 +355,69 @@ String otadrive_ota::getConfigs()
     download(url, nullptr, &conf);
 
     return conf;
+}
+
+size_t updateInfo::printTo(Print &p) const
+{
+    String s = toString();
+    return p.print(s);
+}
+
+String updateInfo::toString() const
+{
+    if (code == update_result::AlreadyUpToDate)
+    {
+        return String("Firmware already uptodate.\n");
+    }
+    else if (code == update_result::Success)
+    {
+        char t[64];
+        sprintf(t, "Firmware update from %s to %s.\n", old_version.c_str(), version.c_str());
+        return String(t);
+    }
+    if (code == update_result::DeviceUnauthorized)
+    {
+        return String("Device Unauthorized. Change the device state on OTAdrive.\n");
+    }
+    else
+    {
+        char t[32];
+        sprintf(t, "OTA update Faild, %s.\n", code_str());
+        return String(t);
+    }
+}
+
+const char *updateInfo::code_str() const
+{
+    static const char *messages[] = {
+        "Connect Error", "Device Unauthorized",
+        "Already UpToDate", "No Firmware Exists",
+        "Success", "Unkwon"};
+    switch (code)
+    {
+    case update_result::Success:
+        return messages[4];
+    case update_result::ConnectError:
+        return messages[0];
+    case update_result::DeviceUnauthorized:
+        return messages[1];
+    case update_result::AlreadyUpToDate:
+        return messages[2];
+    case update_result::NoFirmwareExists:
+        return messages[3];
+
+    default:
+        return messages[5];
+        break;
+    }
+}
+
+bool otadrive_ota::timeTick(uint16_t seconds)
+{
+    if (millis() > tickTimestamp)
+    {
+        tickTimestamp = millis() + ((uint32_t)seconds) * 1000;
+        return true;
+    }
+    return false;
 }

@@ -187,11 +187,14 @@ if(OTADRIVE.timeTick(300))
 ```
 
 # Changes History
-## 2022/04/23, Release 1.0.6
+## 2022/04/23, Release 1.0.8
+* Bugfix  
+
+## 2022/04/23, Release 1.0.7
 * updateFirmwareInfo() returns result of the operation
 * updateFirmwareInfo() let you to prevent reboot after update
 * Automatic filesystem detection
-* timeTick() method for easy sync timing
+* timeTick() method for easy sync timing  
 
 ## 2021/08/24, Release 1.0.5
 * Bug fix: updateFirmwareInfo() always returns "no new firmware available"

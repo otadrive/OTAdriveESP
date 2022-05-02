@@ -74,6 +74,7 @@ update_result otadrive_ota::head(String url, String &resultStr, const char *reqH
             for (uint8_t i = 0; i < http.headers(); i++)
                 hdrs += http.headerName(i) + ": " + http.header(i) + "\n";
             resultStr = hdrs;
+            return update_result::Success;
         }
         else
         {

@@ -234,7 +234,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     url += baseParams();
 
     OTAdrive::Updater gsmHttpUpdate;
-    gsmHttpUpdate.rebootOnUpdate(reboot);
+    gsmHttpUpdate.rebootOnUpdate(false);
     t_httpUpdate_return ret = gsmHttpUpdate.update(client, url);
 
     switch (ret)
@@ -250,7 +250,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     case HTTP_UPDATE_OK:
     {
         Version = inf.version;
-        // sendAlive();
+        sendAlive(client);
         otd_log_i("HTTP_UPDATE_OK");
         if (reboot)
             ESP.restart();

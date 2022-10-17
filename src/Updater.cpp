@@ -192,7 +192,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
                 log_e("Magic header does not start with 0xE9\n");
                 Serial.printf("Magic header does not start with 0xE9\n");
                 _lastError = HTTP_UE_BIN_VERIFY_HEADER_FAILED;
-                client.stop();
+                // client.stop();
                 return HTTP_UPDATE_FAILED;
             }
 
@@ -212,7 +212,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
                 ret = HTTP_UPDATE_OK;
                 log_d("Update ok\n");
                 Serial.println("Update ok");
-                client.stop();
+                // client.stop();
                 // Warn main app we're all done
                 if (_cbEnd)
                 {
@@ -239,7 +239,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
         log_e("Content-Length was 0 or wasn't set by Server?!\n");
     }
 
-    client.stop();
+    // client.stop();
     return ret;
 }
 

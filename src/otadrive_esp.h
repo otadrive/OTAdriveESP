@@ -85,6 +85,7 @@ public:
     bool sendAlive();
 
     updateInfo updateFirmware(bool reboot = true);
+    updateInfo updateFirmware(Client &client, bool reboot = true);
     updateInfo updateFirmwareInfo();
     void onUpdateFirmwareProgress(THandlerFunction_Progress fn);
 

@@ -1,4 +1,5 @@
 #include "otadrive_esp.h"
+#include "Updater.h"
 
 otadrive_ota OTADRIVE;
 otadrive_ota::THandlerFunction_Progress otadrive_ota::_progress_callback = nullptr;
@@ -96,24 +97,19 @@ update_result otadrive_ota::head(String url, String &resultStr, const char *reqH
 bool otadrive_ota::download(String url, File *file, String *outStr)
 {
     WiFiClient client;
-    HTTPClient http;
+    // HTTPClient http;
 
+    OTAdrive::TinyHTTP http(client);
     client.setTimeout(TIMEOUT_MS / 1000);
-#ifdef ESP32
-    http.setConnectTimeout(TIMEOUT_MS);
-#endif
-    http.setTimeout(TIMEOUT_MS);
 
-    if (http.begin(client, url))
+    if (http.get_partial(url))
     {
-        int httpCode = http.GET();
-
         // httpCode will be negative on error
-        if (httpCode == HTTP_CODE_OK)
+        if (http.resp_code == HTTP_CODE_OK)
         {
             if (file)
             {
-                auto strm = http.getStream();
+                auto strm = http.client;
                 int n = 0;
                 uint8_t wbuf[256];
                 while (strm.available())
@@ -128,13 +124,13 @@ bool otadrive_ota::download(String url, File *file, String *outStr)
 
             if (outStr)
             {
-                *outStr = http.getString();
+                *outStr = http.client.readString();
                 return true;
             }
         }
         else
         {
-            otd_log_e("downloaded error %d, %s, %s", httpCode, http.errorToString(httpCode).c_str(), http.getString().c_str());
+            otd_log_e("downloaded error code %d, %s", http.resp_code, http.client.readString());
         }
     }
 
@@ -225,10 +221,46 @@ bool otadrive_ota::sendAlive()
     return download(url, nullptr, nullptr);
 }
 
+updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
+{
+    updateInfo inf;
+    String url = OTADRIVE_URL "update?";
+    url += baseParams();
+    
+    OTAdrive::Updater gsmHttpUpdate;
+    gsmHttpUpdate.rebootOnUpdate(reboot);
+    t_httpUpdate_return ret = gsmHttpUpdate.update(client, url);
+
+    switch (ret)
+    {
+    case HTTP_UPDATE_FAILED:
+        otd_log_i("HTTP_UPDATE_FAILED Error (%d): %s\n", updateObj.getLastError(), updateObj.getLastErrorString().c_str());
+        break;
+
+    case HTTP_UPDATE_NO_UPDATES:
+        otd_log_i("HTTP_UPDATE_NO_UPDATES");
+        break;
+
+    case HTTP_UPDATE_OK:
+    {
+        Version = inf.version;
+        // sendAlive();
+        otd_log_i("HTTP_UPDATE_OK");
+        if (reboot)
+            ESP.restart();
+        break;
+    }
+    default:
+        otd_log_i("HTTP_UPDATE_CODE: %d", ret);
+        break;
+    }
+
+    return inf;
+}
+
 /**
  * Call update API of the OTAdrive server and download new firmware version if available
  * If new version download you never get out of this function. MCU will reboot
- *
  */
 updateInfo otadrive_ota::updateFirmware(bool reboot)
 {

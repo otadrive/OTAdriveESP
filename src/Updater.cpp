@@ -143,7 +143,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
     http.user_headers += "\nx-ESP32-sdk-version: " + String(ESP.getSdkVersion());
     http.user_headers += "\nx-ESP32-mode: sketch";
 
-    if (!http.get_partial(url, 0, 16))
+    if (!http.get(url, 0, 16))
     {
         if (http.resp_code == HTTP_CODE_NOT_MODIFIED)
             return HTTP_UPDATE_NO_UPDATES;
@@ -254,8 +254,6 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
  */
 bool Updater::runUpdate(TinyHTTP http, int command)
 {
-    Serial.println("AAA BBB");
-
     StreamString error;
 
     if (_cbProgress)
@@ -279,12 +277,12 @@ bool Updater::runUpdate(TinyHTTP http, int command)
         _cbProgress(0, http.total_len);
     }
 
-    if (http.MD5.length())
+    if (http.xMD5.length())
     {
-        if (!Update.setMD5(http.MD5.c_str()))
+        if (!Update.setMD5(http.xMD5.c_str()))
         {
             _lastError = HTTP_UE_SERVER_FAULTY_MD5;
-            log_e("Update.setMD5 failed! (%s)\n", http.MD5.c_str());
+            log_e("Update.setMD5 failed! (%s)\n", http.xMD5.c_str());
             return false;
         }
     }
@@ -314,7 +312,7 @@ bool Updater::runUpdate(TinyHTTP http, int command)
             {
                 for (uint8_t t = 0; t < 3; t++)
                 {
-                    if (http.get_partial("", i, GET_SIZE))
+                    if (http.get("", i, GET_SIZE))
                         break;
                 }
                 rd = http.client.readBytes(tmp_buf, BUF_SIZE);
@@ -324,7 +322,7 @@ bool Updater::runUpdate(TinyHTTP http, int command)
             {
                 for (uint8_t t = 0; t < 3; t++)
                 {
-                    if (http.get_partial("", i, remain))
+                    if (http.get("", i, remain))
                         break;
                 }
                 if (remain > BUF_SIZE)
@@ -336,13 +334,13 @@ bool Updater::runUpdate(TinyHTTP http, int command)
         }
 
         remain -= rd;
-        Serial2.printf("Downloaded part %d-%d %d\n", i, rd, remain);
+        Serial.printf("Downloaded part %d-%d %d\n", i, rd, remain);
         if (rd == 0)
         {
             // Update.printError(error);
             // error.trim(); // remove line ending
             log_e("read from stream failed!\n");
-            Serial2.printf("read from stream failed!\n");
+            Serial.printf("read from stream failed!\n");
             remain_get = 0;
             // return false;
             continue;
@@ -355,28 +353,28 @@ bool Updater::runUpdate(TinyHTTP http, int command)
             Update.printError(error);
             error.trim(); // remove line ending
             log_e("Update.writeStream failed! (%s)\n", error.c_str());
-            Serial2.printf("Update.writeStream failed[%d]! (%s)\n", millis() - t0, error.c_str());
+            Serial.printf("Update.writeStream failed[%d]! (%s)\n", millis() - t0, error.c_str());
             return false;
         }
 
         i += rd;
 
-        Serial2.printf("U[%d] %d,%d\n", millis() - t0, http.total_len, i);
+        Serial.printf("U[%d] %d,%d\n", millis() - t0, http.total_len, i);
     }
 
     // if (_cbProgress)
     // {
     //     _cbProgress(size, size);
     // }
-
-    Serial2.printf("Download end MD5 %s\n", md5c.toString().c_str());
-    Serial2.flush();
+    md5c.calculate();
+    Serial.printf("Download end MD5 %s\n", md5c.toString().c_str());
     if (!Update.end())
     {
         _lastError = Update.getError();
         Update.printError(error);
         error.trim(); // remove line ending
         log_e("Update.end failed! (%s)\n", error.c_str());
+        Serial.printf("Update.end failed! (%s)\n", error.c_str());
         return false;
     }
 

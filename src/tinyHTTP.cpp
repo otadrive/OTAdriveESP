@@ -37,17 +37,20 @@ bool TinyHTTP::begin_connect(const String &url)
     return true;
 }
 
-bool TinyHTTP::get_partial(String url, int partial_st, int partial_len)
+bool TinyHTTP::get(String url, int partial_st, int partial_len)
 {
     if (url.isEmpty())
         url = _url;
     else
         _url = url;
 
+    bool head = partial_st == 0 && partial_len == 0;
+    resp_code = 0;
+
     if (!begin_connect(url))
         return false;
 
-    String http_get = "GET " + uri + " HTTP/1.1";
+    String http_get = (head ? "HEAD " : "GET ") + uri + " HTTP/1.1";
     String http_hdr;
     total_len = 0;
 
@@ -59,12 +62,9 @@ bool TinyHTTP::get_partial(String url, int partial_st, int partial_len)
 
     // const char *headerkeys[] = {"x-MD5"};
     // size_t headerkeyssize = sizeof(headerkeys) / sizeof(char *);
-
-    String xmd5;
-
     String total_req = http_get +
                        http_hdr +
-                       "\nRange: bytes=" + String(partial_st) + "-" + String((partial_st + partial_len) - 1) +
+                       (head || partial_len == INT_MAX ? "" : "\nRange: bytes=" + String(partial_st) + "-" + String((partial_st + partial_len) - 1)) +
                        "\n\n";
     client.print(total_req.c_str());
     client.flush();
@@ -98,7 +98,11 @@ bool TinyHTTP::get_partial(String url, int partial_st, int partial_len)
         }
         else if (resp.startsWith("x-MD5"))
         {
-            xmd5 = resp.substring(7);
+            xMD5 = resp.substring(7);
+        }
+        else if (resp.startsWith("X-Version"))
+        {
+            xVersion = resp.substring(11);
         }
         else if (resp.startsWith("Content-Range: bytes"))
         {
@@ -111,7 +115,7 @@ bool TinyHTTP::get_partial(String url, int partial_st, int partial_len)
             break;
     } while (true);
 
-    if (total_len == 0 && !isPartial)
+    if (total_len == 0 && isPartial)
         return false;
     if (total_len == 0)
         total_len = content_len;

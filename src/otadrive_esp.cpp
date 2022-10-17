@@ -23,7 +23,7 @@ void otadrive_ota::setInfo(String ApiKey, String Version)
 
 String otadrive_ota::baseParams()
 {
-    return "k=" + ProductKey + "&v=" + Version + "&s=" + getChipId();
+    return "k=" + ProductKey + "&v=" + Version + "&s=" + "11"; // getChipId();
 }
 
 /**
@@ -42,79 +42,75 @@ String otadrive_ota::getChipId()
 #endif
 }
 
-String otadrive_ota::downloadResourceList()
+String otadrive_ota::downloadResourceList(Client &client)
 {
     String url = OTADRIVE_URL "resource/list?plain&";
     url += baseParams();
 
     String res;
-    download(url, nullptr, &res);
+    download(client, url, nullptr, &res);
     return res;
 }
 
-update_result otadrive_ota::head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount)
+// update_result otadrive_ota::head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount)
+// {
+//     WiFiClient client;
+//     HTTPClient http;
+
+//     client.setTimeout(TIMEOUT_MS / 1000);
+// #ifdef ESP32
+//     http.setConnectTimeout(TIMEOUT_MS);
+// #endif
+//     http.setTimeout(TIMEOUT_MS);
+
+//     if (http.begin(client, url))
+//     {
+//         http.collectHeaders(reqHdrs, reqHdrsCount);
+//         int httpCode = http.sendRequest("HEAD");
+
+//         // httpCode will be negative on error
+//         if (httpCode == HTTP_CODE_OK)
+//         {
+//             String hdrs = "";
+//             for (uint8_t i = 0; i < http.headers(); i++)
+//                 hdrs += http.headerName(i) + ": " + http.header(i) + "\n";
+//             resultStr = hdrs;
+//             return update_result::Success;
+//         }
+//         else
+//         {
+//             otd_log_e("downloaded error %d, %s", httpCode, http.errorToString(httpCode).c_str());
+//             if (httpCode == 404)
+//                 return update_result::NoFirmwareExists;
+//             else if (httpCode == 304)
+//                 return update_result::AlreadyUpToDate;
+//             else if (httpCode == 401)
+//                 return update_result::DeviceUnauthorized;
+//             return update_result::ConnectError;
+//         }
+//     }
+
+//     resultStr = "";
+//     return update_result::ConnectError;
+// }
+
+bool otadrive_ota::download(Client &client, String url, File *file, String *outStr)
 {
-    WiFiClient client;
-    HTTPClient http;
-
-    client.setTimeout(TIMEOUT_MS / 1000);
-#ifdef ESP32
-    http.setConnectTimeout(TIMEOUT_MS);
-#endif
-    http.setTimeout(TIMEOUT_MS);
-
-    if (http.begin(client, url))
-    {
-        http.collectHeaders(reqHdrs, reqHdrsCount);
-        int httpCode = http.sendRequest("HEAD");
-
-        // httpCode will be negative on error
-        if (httpCode == HTTP_CODE_OK)
-        {
-            String hdrs = "";
-            for (uint8_t i = 0; i < http.headers(); i++)
-                hdrs += http.headerName(i) + ": " + http.header(i) + "\n";
-            resultStr = hdrs;
-            return update_result::Success;
-        }
-        else
-        {
-            otd_log_e("downloaded error %d, %s", httpCode, http.errorToString(httpCode).c_str());
-            if (httpCode == 404)
-                return update_result::NoFirmwareExists;
-            else if (httpCode == 304)
-                return update_result::AlreadyUpToDate;
-            else if (httpCode == 401)
-                return update_result::DeviceUnauthorized;
-            return update_result::ConnectError;
-        }
-    }
-
-    resultStr = "";
-    return update_result::ConnectError;
-}
-
-bool otadrive_ota::download(String url, File *file, String *outStr)
-{
-    WiFiClient client;
-    // HTTPClient http;
-
     OTAdrive::TinyHTTP http(client);
     client.setTimeout(TIMEOUT_MS / 1000);
 
-    if (http.get_partial(url))
+    if (http.get(url))
     {
         // httpCode will be negative on error
         if (http.resp_code == HTTP_CODE_OK)
         {
             if (file)
             {
-                auto strm = http.client;
                 int n = 0;
                 uint8_t wbuf[256];
-                while (strm.available())
+                while (http.client.available())
                 {
-                    int rd = strm.readBytes(wbuf, sizeof(wbuf));
+                    int rd = http.client.readBytes(wbuf, sizeof(wbuf));
                     n += file->write(wbuf, rd);
                 }
 
@@ -147,12 +143,17 @@ void otadrive_ota::setFileSystem(FS *fileObj)
     this->fileObj = fileObj;
 }
 
+bool otadrive_ota::syncResources()
+{
+    WiFiClient client;
+    return syncResources(client);
+}
 /**
  * Call resource API of the OTAdrive server and sync local files with server
  *
  * @return returns success if no error happens in the procedure
  */
-bool otadrive_ota::syncResources()
+bool otadrive_ota::syncResources(Client &client)
 {
     if (fileObj == nullptr)
     {
@@ -160,7 +161,7 @@ bool otadrive_ota::syncResources()
         return false;
     }
 
-    String list = downloadResourceList();
+    String list = downloadResourceList(client);
     String baseurl = OTADRIVE_URL "resource/get?";
     baseurl += baseParams();
 
@@ -201,7 +202,7 @@ bool otadrive_ota::syncResources()
                 return false;
             }
 
-            download(baseurl + "&fk=" + fk, &file, nullptr);
+            download(client, baseurl + "&fk=" + fk, &file, nullptr);
             file.close();
         }
     }
@@ -209,16 +210,21 @@ bool otadrive_ota::syncResources()
     return true;
 }
 
+bool otadrive_ota::sendAlive()
+{
+    WiFiClient client;
+    return sendAlive(client);
+}
 /**
  * Call alive API of the OTAdrive server and sends some device info
  *
  * @return returns success if no error happens in procedure
  */
-bool otadrive_ota::sendAlive()
+bool otadrive_ota::sendAlive(Client &client)
 {
     String url = OTADRIVE_URL "alive?";
     url += baseParams();
-    return download(url, nullptr, nullptr);
+    return download(client, url, nullptr, nullptr);
 }
 
 updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
@@ -226,7 +232,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     updateInfo inf;
     String url = OTADRIVE_URL "update?";
     url += baseParams();
-    
+
     OTAdrive::Updater gsmHttpUpdate;
     gsmHttpUpdate.rebootOnUpdate(reboot);
     t_httpUpdate_return ret = gsmHttpUpdate.update(client, url);
@@ -323,69 +329,82 @@ void otadrive_ota::updateFirmwareProgress(int progress, int totalt)
         _progress_callback(progress, totalt);
 }
 
+updateInfo otadrive_ota::updateFirmwareInfo()
+{
+    WiFiClient client;
+    return updateFirmwareInfo(client);
+}
 /**
  * Call update API of the OTAdrive server and gets information about new firmware
  *
  * @return updateInfo object, contains information about new version on server
  */
-updateInfo otadrive_ota::updateFirmwareInfo()
+updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
 {
+    updateInfo inf;
+
     String url = OTADRIVE_URL "update?";
     url += baseParams();
-    const char *reqHdrs[2] = {"X-Version", "Content-Length"};
-    String r;
-    update_result ures = head(url, r, reqHdrs, 2);
-    otd_log_i("heads [%d] \n%s ", (int)ures, r.c_str());
 
-    updateInfo inf;
+    OTAdrive::TinyHTTP http(client);
+    http.get(url, 0, 0);
+
+    otd_log_i("heads [%d] \n", (int)http.resp_code);
+
     inf.available = false;
-    inf.size = 0;
-    inf.code = ures;
-    inf.version = "";
-    if (ures != update_result::Success)
-        return inf;
+    inf.code = update_result::ConnectError;
+    inf.version = http.xVersion;
+    inf.size = http.total_len;
+    
 
-    if (r.length() == 0)
+    switch (http.resp_code)
     {
-        inf.available = false;
-        otd_log_i("required headers not available\n%s ", r.c_str());
+    case 0:
+        otd_log_e("connect error\n");
         inf.code = update_result::ConnectError;
-        return inf;
-    }
+        break;
 
-    while (r.length())
-    {
-        String hline = cutLine(r);
-        if (hline.startsWith("X-Version"))
-        {
-            hline.replace("X-Version: ", "");
-            inf.version = hline;
-        }
-        else if (hline.startsWith("Content-Length"))
-        {
-            hline.replace("Content-Length: ", "");
-            inf.size = hline.toInt();
-        }
-    }
+    case HTTP_CODE_NOT_FOUND:
+        otd_log_i("not found error\n");
+        inf.code = update_result::NoFirmwareExists;
+        break;
 
-    inf.available = inf.version != Version;
-    inf.code = update_result::Success;
+    case HTTP_CODE_NOT_MODIFIED:
+        otd_log_i("no new firmware\n");
+        inf.code = update_result::AlreadyUpToDate;
+        break;
+
+    case HTTP_CODE_UNAUTHORIZED:
+        otd_log_e("unauthorized error\n");
+        inf.code = update_result::DeviceUnauthorized;
+        break;
+
+    case HTTP_CODE_OK:
+        inf.available = inf.version != Version;
+        inf.code = update_result::Success;
+        break;
+    }
 
     return inf;
 }
 
+String otadrive_ota::getConfigs()
+{
+    WiFiClient client;
+    return getConfigs(client);
+}
 /**
  * Call configuration API of the OTAdrive server and gets device configuration as string
  *
  * @return configuration of device as String
  */
-String otadrive_ota::getConfigs()
+String otadrive_ota::getConfigs(Client &client)
 {
     String url = OTADRIVE_URL "getconfig?";
     url += baseParams();
 
     String conf;
-    download(url, nullptr, &conf);
+    download(client, url, nullptr, &conf);
 
     return conf;
 }

@@ -62,19 +62,20 @@ class otadrive_ota
 private:
     uint32_t tickTimestamp = 0;
     const uint16_t TIMEOUT_MS = 10000;
-    String ProductKey;
-    String Version;
 
     String cutLine(String &str);
     String baseParams();
-    bool download(String url, File *file, String *outStr);
-    update_result head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount);
+    bool download(Client &client, String url, File *file, String *outStr);
+    // update_result head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount);
     String file_md5(File &f);
-    String downloadResourceList();
+    String downloadResourceList(Client &client);
 
     static void updateFirmwareProgress(int progress, int totalt);
 
 public:
+    String ProductKey;
+    String Version;
+
     typedef std::function<void(size_t, size_t)> THandlerFunction_Progress;
     FS *fileObj;
 
@@ -83,15 +84,19 @@ public:
     String getChipId();
 
     bool sendAlive();
+    bool sendAlive(Client &client);
 
     updateInfo updateFirmware(bool reboot = true);
     updateInfo updateFirmware(Client &client, bool reboot = true);
     updateInfo updateFirmwareInfo();
+    updateInfo updateFirmwareInfo(Client &client);
     void onUpdateFirmwareProgress(THandlerFunction_Progress fn);
 
     bool syncResources();
+    bool syncResources(Client &client);
     void setFileSystem(FS *fileObj);
     String getConfigs();
+    String getConfigs(Client &client);
 
     bool timeTick(uint16_t seconds);
 

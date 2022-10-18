@@ -360,12 +360,12 @@ bool Updater::runUpdate(TinyHTTP http, int command)
         i += rd;
 
         Serial.printf("U[%d] %d,%d\n", millis() - t0, http.total_len, i);
+        if (_cbProgress)
+        {
+            _cbProgress(i, http.total_len);
+        }
     }
 
-    // if (_cbProgress)
-    // {
-    //     _cbProgress(size, size);
-    // }
     md5c.calculate();
     Serial.printf("Download end MD5 %s\n", md5c.toString().c_str());
     if (!Update.end())

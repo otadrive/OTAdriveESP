@@ -23,7 +23,7 @@ void otadrive_ota::setInfo(String ApiKey, String Version)
 
 String otadrive_ota::baseParams()
 {
-    return "k=" + ProductKey + "&v=" + Version + "&s=" + "11"; // getChipId();
+    return "k=" + ProductKey + "&v=" + Version + "&s=" + "12"; // getChipId();
 }
 
 /**
@@ -229,13 +229,20 @@ bool otadrive_ota::sendAlive(Client &client)
 
 updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 {
-    updateInfo inf;
+    updateInfo inf = updateFirmwareInfo(client);
+    if (!inf.available)
+    {
+        otd_log_i("No new firmware available");
+        return inf;
+    }
+
     String url = OTADRIVE_URL "update?";
     url += baseParams();
 
-    OTAdrive::Updater gsmHttpUpdate;
-    gsmHttpUpdate.rebootOnUpdate(false);
-    t_httpUpdate_return ret = gsmHttpUpdate.update(client, url);
+    OTAdrive::Updater updater;
+    updater.rebootOnUpdate(false);
+    updater.onProgress(updateFirmwareProgress);
+    t_httpUpdate_return ret = updater.update(client, url);
 
     switch (ret)
     {
@@ -250,6 +257,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     case HTTP_UPDATE_OK:
     {
         Version = inf.version;
+        Serial.println("Aliving");
         sendAlive(client);
         otd_log_i("HTTP_UPDATE_OK");
         if (reboot)
@@ -355,7 +363,6 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     inf.code = update_result::ConnectError;
     inf.version = http.xVersion;
     inf.size = http.total_len;
-    
 
     switch (http.resp_code)
     {

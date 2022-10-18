@@ -27,11 +27,18 @@ bool TinyHTTP::begin_connect(const String &url)
     // TODO: Port may be diffrent than 80
 
     client.setTimeout(10000);
-    // client.stop();
-    if (!client.connect(host.c_str(), 80))
+    if (client.connected())
+        client.stop();
+    for (uint8_t tr = 0;; tr++)
     {
-        Serial2.printf("connect to %s faild", host.c_str());
-        return false;
+        if (tr == 3)
+            return false;
+        if (!client.connect(host.c_str(), 80))
+        {
+            Serial.printf("connect to %s faild\n", host.c_str());
+            continue;
+        }
+        break;
     }
 
     return true;
@@ -91,7 +98,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     {
         resp = client.readStringUntil('\n');
         resp.trim();
-        Serial2.printf("hdr %s\n", resp.c_str());
+        Serial.printf("hdr %s\n", resp.c_str());
         if (resp.startsWith("Content-Length"))
         {
             content_len = resp.substring(16).toInt();

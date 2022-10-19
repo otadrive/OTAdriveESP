@@ -23,7 +23,7 @@ void otadrive_ota::setInfo(String ApiKey, String Version)
 
 String otadrive_ota::baseParams()
 {
-    return "k=" + ProductKey + "&v=" + Version + "&s=" + "12"; // getChipId();
+    return "k=" + ProductKey + "&v=" + Version + "&s=" + getChipId();
 }
 
 /**

@@ -28,6 +28,7 @@
 #include "tinyHTTP.h"
 #include <esp_partition.h>
 #include <esp_ota_ops.h> // get running partition
+#include <otadrive_esp.h>
 
 using namespace OTAdrive;
 
@@ -163,8 +164,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
 
         if (http.total_len > sketchFreeSpace)
         {
-            log_e("FreeSketchSpace to low (%d) needed: %d\n", sketchFreeSpace, http.total_len);
-            Serial2.printf("FreeSketchSpace to low (%d) needed: %d\n", sketchFreeSpace, http.total_len);
+            otd_log_e("FreeSketchSpace to low (%d) needed: %d\n", sketchFreeSpace, http.total_len);
             startUpdate = false;
         }
 
@@ -182,15 +182,14 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
             }
 
             delay(100);
-            log_d("runUpdate flash...\n");
+            otd_log_d("runUpdate flash...\n");
 
             // check for valid first magic byte
             uint8_t buf[16];
             client.readBytes(buf, 16);
             if (buf[0] != 0xE9)
             {
-                log_e("Magic header does not start with 0xE9\n");
-                Serial.printf("Magic header does not start with 0xE9\n");
+                otd_log_e("Magic header does not start with 0xE9\n");
                 _lastError = HTTP_UE_BIN_VERIFY_HEADER_FAILED;
                 // client.stop();
                 return HTTP_UPDATE_FAILED;
@@ -210,8 +209,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
             if (runUpdate(http, U_FLASH))
             {
                 ret = HTTP_UPDATE_OK;
-                log_d("Update ok\n");
-                Serial.println("Update ok");
+                otd_log_d("Update ok\n");
                 // client.stop();
                 // Warn main app we're all done
                 if (_cbEnd)
@@ -227,8 +225,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
             else
             {
                 ret = HTTP_UPDATE_FAILED;
-                log_e("Update failed\n");
-                Serial.println("Update failed");
+                otd_log_e("Update failed\n");
             }
         }
     }
@@ -236,7 +233,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
     {
         _lastError = HTTP_UE_SERVER_NOT_REPORT_SIZE;
         ret = HTTP_UPDATE_FAILED;
-        log_e("Content-Length was 0 or wasn't set by Server?!\n");
+        otd_log_e("Content-Length was 0 or wasn't set by Server?!\n");
     }
 
     // client.stop();
@@ -266,8 +263,7 @@ bool Updater::runUpdate(TinyHTTP http, int command)
         _lastError = Update.getError();
         Update.printError(error);
         error.trim(); // remove line ending
-        log_e("Update.begin failed! (%s)\n", error.c_str());
-        Serial2.printf("Update.begin failed! (%s)\n", error.c_str());
+        otd_log_e("Update.begin failed! (%s)\n", error.c_str());
         Update.end();
         return false;
     }
@@ -282,7 +278,7 @@ bool Updater::runUpdate(TinyHTTP http, int command)
         if (!Update.setMD5(http.xMD5.c_str()))
         {
             _lastError = HTTP_UE_SERVER_FAULTY_MD5;
-            log_e("Update.setMD5 failed! (%s)\n", http.xMD5.c_str());
+            otd_log_e("Update.setMD5 failed! (%s)\n", http.xMD5.c_str());
             return false;
         }
     }
@@ -298,13 +294,13 @@ bool Updater::runUpdate(TinyHTTP http, int command)
 
     for (uint32_t i = 0; i < http.total_len; tmp_buf)
     {
-        Serial2.printf("Begin Download part ind:%d, get buf:%d,rem:%d\n", i, remain_get, remain);
+        otd_log_i("Begin Download part ind:%d, get buf:%d,rem:%d\n", i, remain_get, remain);
         size_t rd;
         if (remain_get)
         {
             rd = http.client.readBytes(tmp_buf, BUF_SIZE);
             remain_get -= rd;
-            Serial2.printf("Begin Download part %d\n", i);
+            otd_log_i("Begin Download part %d\n", i);
         }
         else
         {
@@ -334,13 +330,12 @@ bool Updater::runUpdate(TinyHTTP http, int command)
         }
 
         remain -= rd;
-        Serial.printf("Downloaded part %d-%d %d\n", i, rd, remain);
+        otd_log_i("Downloaded part %d-%d %d\n", i, rd, remain);
         if (rd == 0)
         {
             // Update.printError(error);
             // error.trim(); // remove line ending
-            log_e("read from stream failed!\n");
-            Serial.printf("read from stream failed!\n");
+            otd_log_e("read from stream failed!\n");
             remain_get = 0;
             // return false;
             continue;
@@ -352,14 +347,13 @@ bool Updater::runUpdate(TinyHTTP http, int command)
             _lastError = Update.getError();
             Update.printError(error);
             error.trim(); // remove line ending
-            log_e("Update.writeStream failed! (%s)\n", error.c_str());
-            Serial.printf("Update.writeStream failed[%d]! (%s)\n", millis() - t0, error.c_str());
+            otd_log_e("Update.writeStream failed! (%s)\n", error.c_str());
             return false;
         }
 
         i += rd;
 
-        Serial.printf("U[%d] %d,%d\n", millis() - t0, http.total_len, i);
+        otd_log_i("U[%d] %d,%d\n", millis() - t0, http.total_len, i);
         if (_cbProgress)
         {
             _cbProgress(i, http.total_len);
@@ -367,14 +361,13 @@ bool Updater::runUpdate(TinyHTTP http, int command)
     }
 
     md5c.calculate();
-    Serial.printf("Download end MD5 %s\n", md5c.toString().c_str());
+    otd_log_i("Download end MD5 %s\n", md5c.toString().c_str());
     if (!Update.end())
     {
         _lastError = Update.getError();
         Update.printError(error);
         error.trim(); // remove line ending
-        log_e("Update.end failed! (%s)\n", error.c_str());
-        Serial.printf("Update.end failed! (%s)\n", error.c_str());
+        otd_log_e("Update.end failed! (%s)\n", error.c_str());
         return false;
     }
 

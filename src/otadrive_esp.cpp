@@ -257,7 +257,6 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     case HTTP_UPDATE_OK:
     {
         Version = inf.version;
-        Serial.println("Aliving");
         sendAlive(client);
         otd_log_i("HTTP_UPDATE_OK");
         if (reboot)

@@ -1,5 +1,6 @@
 #include "tinyHTTP.h"
 #include <HTTPClient.h>
+#include <otadrive_esp.h>
 
 using namespace OTAdrive;
 
@@ -35,7 +36,7 @@ bool TinyHTTP::begin_connect(const String &url)
             return false;
         if (!client.connect(host.c_str(), 80))
         {
-            Serial.printf("connect to %s faild\n", host.c_str());
+            otd_log_e("connect to %s faild\n", host.c_str());
             continue;
         }
         break;
@@ -79,7 +80,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     int content_len = 0;
 
     String resp = client.readStringUntil('\n');
-    Serial2.printf("the h %s\n", resp.c_str());
+    otd_log_i("the h %s\n", resp.c_str());
     // HTTP/1.1 401 Unauthorized
     // HTTP/1.1 200 OK
     if (!resp.startsWith("HTTP/1.1 "))
@@ -98,7 +99,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     {
         resp = client.readStringUntil('\n');
         resp.trim();
-        Serial.printf("hdr %s\n", resp.c_str());
+        otd_log_i("hdr %s\n", resp.c_str());
         if (resp.startsWith("Content-Length"))
         {
             content_len = resp.substring(16).toInt();

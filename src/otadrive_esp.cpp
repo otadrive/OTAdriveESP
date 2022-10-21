@@ -1,5 +1,6 @@
 #include "otadrive_esp.h"
 #include "Updater.h"
+#include "tinyHTTP.h"
 
 otadrive_ota OTADRIVE;
 otadrive_ota::THandlerFunction_Progress otadrive_ota::_progress_callback = nullptr;
@@ -126,7 +127,7 @@ bool otadrive_ota::download(Client &client, String url, File *file, String *outS
         }
         else
         {
-            otd_log_e("downloaded error code %d, %s", http.resp_code, http.client.readString());
+            otd_log_e("downloaded error code %d, %s", http.resp_code, http.client.readString().c_str());
         }
     }
 
@@ -227,6 +228,7 @@ bool otadrive_ota::sendAlive(Client &client)
     return download(client, url, nullptr, nullptr);
 }
 
+#ifdef ESP32
 updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 {
     updateInfo inf = updateFirmwareInfo(client);
@@ -270,6 +272,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 
     return inf;
 }
+#endif
 
 /**
  * Call update API of the OTAdrive server and download new firmware version if available

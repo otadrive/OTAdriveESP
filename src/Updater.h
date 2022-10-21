@@ -23,7 +23,7 @@
  *
  */
 
-#ifndef ___GSMHTTP_UPDATE_H___
+#if !defined(___GSMHTTP_UPDATE_H___) && defined(ESP32)
 #define ___GSMHTTP_UPDATE_H___
 
 #include <Arduino.h>

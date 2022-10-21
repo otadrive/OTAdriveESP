@@ -1,6 +1,13 @@
+
+#ifdef ESP8266
+#include "tinyHTTP.h"
+#include <ESP8266HTTPClient.h>
+#include <otadrive_esp.h>
+#elif defined(ESP32)
 #include "tinyHTTP.h"
 #include <HTTPClient.h>
 #include <otadrive_esp.h>
+#endif
 
 using namespace OTAdrive;
 
@@ -89,7 +96,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
 
     if (resp_code != HTTP_CODE_OK && resp_code != HTTP_CODE_PARTIAL_CONTENT)
     {
-        log_e("HTTP error: %d,%s\n", resp_code, resp.c_str());
+        otd_log_e("HTTP error: %d,%s\n", resp_code, resp.c_str());
         return false;
     }
     isPartial = (resp_code == HTTP_CODE_PARTIAL_CONTENT);

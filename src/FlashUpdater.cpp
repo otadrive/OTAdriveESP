@@ -1,5 +1,5 @@
 #ifdef ESP32
-#include "Updater.h"
+#include "FlashUpdater.h"
 #include <StreamString.h>
 #include "tinyHTTP.h"
 #include <esp_partition.h>
@@ -11,23 +11,23 @@ using namespace OTAdrive;
 // To do extern "C" uint32_t _SPIFFS_start;
 // To do extern "C" uint32_t _SPIFFS_end;
 
-Updater::Updater(void)
+FlashUpdater::FlashUpdater(void)
     : _httpClientTimeout(8000), _ledPin(-1)
 {
     _followRedirects = HTTPC_DISABLE_FOLLOW_REDIRECTS;
 }
 
-Updater::Updater(int httpClientTimeout)
+FlashUpdater::FlashUpdater(int httpClientTimeout)
     : _httpClientTimeout(httpClientTimeout), _ledPin(-1)
 {
     _followRedirects = HTTPC_DISABLE_FOLLOW_REDIRECTS;
 }
 
-Updater::~Updater(void)
+FlashUpdater::~FlashUpdater(void)
 {
 }
 
-HTTPUpdateResult Updater::update(Client &client, const String &url)
+HTTPUpdateResult FlashUpdater::update(Client &client, const String &url)
 {
     return handleUpdate(client, url);
 }
@@ -36,7 +36,7 @@ HTTPUpdateResult Updater::update(Client &client, const String &url)
  * return error code as int
  * @return int error code
  */
-int Updater::getLastError(void)
+int FlashUpdater::getLastError(void)
 {
     return _lastError;
 }
@@ -45,7 +45,7 @@ int Updater::getLastError(void)
  * return error code as String
  * @return String error
  */
-String Updater::getLastErrorString(void)
+String FlashUpdater::getLastErrorString(void)
 {
 
     if (_lastError == 0)
@@ -99,7 +99,7 @@ String Updater::getLastErrorString(void)
  * @param currentVersion const char *
  * @return HTTPUpdateResult
  */
-HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
+HTTPUpdateResult FlashUpdater::handleUpdate(Client &client, const String &url)
 {
     HTTPUpdateResult ret = HTTPUpdateResult::HTTP_UPDATE_FAILED;
     TinyHTTP http(client);
@@ -225,7 +225,7 @@ HTTPUpdateResult Updater::handleUpdate(Client &client, const String &url)
  * @param md5 String
  * @return true if Update ok
  */
-bool Updater::runUpdate(TinyHTTP http, int command)
+bool FlashUpdater::runUpdate(TinyHTTP http, int command)
 {
     StreamString error;
 

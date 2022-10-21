@@ -1,5 +1,5 @@
 #include "otadrive_esp.h"
-#include "Updater.h"
+#include "FlashUpdater.h"
 #include "tinyHTTP.h"
 
 otadrive_ota OTADRIVE;
@@ -241,7 +241,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     String url = OTADRIVE_URL "update?";
     url += baseParams();
 
-    OTAdrive::Updater updater;
+    OTAdrive::FlashUpdater updater;
     updater.rebootOnUpdate(false);
     updater.onProgress(updateFirmwareProgress);
     t_httpUpdate_return ret = updater.update(client, url);

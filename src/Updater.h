@@ -30,7 +30,6 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
-#include <TinyGsmClient.h>
 #include <Update.h>
 #include <HTTPUpdate.h>
 #include "tinyHTTP.h"

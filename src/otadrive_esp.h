@@ -14,6 +14,9 @@
 #include <SPIFFS.h>
 #define updateObj httpUpdate
 #define OTA_FILE_SYS SPIFFS
+
+using fs::FS;
+using fs::File;
 #endif
 
 #ifndef OTADRIVE_URL

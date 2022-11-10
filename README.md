@@ -187,11 +187,14 @@ if(OTADRIVE.timeTick(300))
     Serial.printf("\nconfiguration: %s\n", c.c_str());
 }
 ```
+# Changes History
+## 2022/10/19 Release 1.1.7
+* Watchdog timer handle for ESP32
+* Bugfix
 
 ## 2022/10/19 Release 1.1.2
 * OTA via TinyGsm library for GSM modems (SIM800, UC20, etc.)
 
-# Changes History
 ## 2022/04/23, Release 1.0.8
 * Bugfix  
 

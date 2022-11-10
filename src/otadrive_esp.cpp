@@ -2,6 +2,10 @@
 #include "FlashUpdater.h"
 #include "tinyHTTP.h"
 
+#ifdef ESP32
+#include <esp_task_wdt.h>
+#endif
+
 otadrive_ota OTADRIVE;
 otadrive_ota::THandlerFunction_Progress otadrive_ota::_progress_callback = nullptr;
 
@@ -231,6 +235,9 @@ bool otadrive_ota::sendAlive(Client &client)
 #ifdef ESP32
 updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 {
+#ifdef ESP32
+    esp_task_wdt_init(45, true);
+#endif
     updateInfo inf = updateFirmwareInfo(client);
     if (!inf.available)
     {
@@ -280,6 +287,9 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
  */
 updateInfo otadrive_ota::updateFirmware(bool reboot)
 {
+#ifdef ESP32
+    esp_task_wdt_init(45, true);
+#endif
     updateInfo inf = updateFirmwareInfo();
 
     if (!inf.available)
@@ -335,6 +345,9 @@ void otadrive_ota::onUpdateFirmwareProgress(THandlerFunction_Progress fn)
 
 void otadrive_ota::updateFirmwareProgress(int progress, int totalt)
 {
+#ifdef ESP32
+    esp_task_wdt_reset();
+#endif
     if (_progress_callback != nullptr)
         _progress_callback(progress, totalt);
 }

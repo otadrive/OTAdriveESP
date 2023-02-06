@@ -188,6 +188,9 @@ if(OTADRIVE.timeTick(300))
 }
 ```
 # Changes History
+## 2023/02/07 Release 1.1.8
+* GetConfig Bugfix for ESP8266
+
 ## 2022/10/19 Release 1.1.7
 * Watchdog timer handle for ESP32
 * Bugfix

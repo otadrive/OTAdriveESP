@@ -125,7 +125,18 @@ bool otadrive_ota::download(Client &client, String url, File *file, String *outS
 
             if (outStr)
             {
-                *outStr = http.client.readString();
+                uint8_t wbuf[256];
+                *outStr = "";
+                while (http.client.available())
+                {
+                    int len = sizeof(wbuf) - 1;
+                    if (http.client.available() < len)
+                        len = http.client.available();
+
+                    int rd = http.client.readBytes(wbuf, len);
+                    wbuf[rd] = '\0';
+                    *outStr += String((char *)wbuf);
+                }
                 return true;
             }
         }

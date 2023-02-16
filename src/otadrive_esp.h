@@ -60,7 +60,9 @@ class device_status
     double longitude;
 };
 
+#ifdef ESP32
 #warning "This version of the OTAdrive library uses the MD5 matcher mechanism instead of the version code mechanism to decide download new firmware or not. If you don't like it, call OTAdrive.useMD5Matcher(false)"
+#endif
 
 class otadrive_ota
 {

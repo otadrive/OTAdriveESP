@@ -391,9 +391,13 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     url += baseParams();
 
     OTAdrive::TinyHTTP http(client);
+#ifdef ESP32
     OTAdrive::FlashUpdater updater;
     updater.MD5_Match = MD5_Match;
     http.user_headers = updater.createHeaders();
+#else
+
+#endif
     http.get(url, 0, 0);
 
     otd_log_i("heads [%d] \n", (int)http.resp_code);

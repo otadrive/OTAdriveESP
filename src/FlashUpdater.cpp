@@ -93,6 +93,31 @@ String FlashUpdater::getLastErrorString(void)
     return String();
 }
 
+String FlashUpdater::createHeaders(void)
+{
+    String hdr = "";
+    hdr = "\r\nUser-Agent: ESP32-http-Update"
+          "\r\nCache-Control: no-cache";
+    hdr += "\r\nx-ESP32-STA-MAC: " + WiFi.macAddress();
+    hdr += "\r\nx-ESP32-AP-MAC: " + WiFi.softAPmacAddress();
+    hdr += "\r\nx-ESP32-free-space: " + String(ESP.getFreeSketchSpace());
+    hdr += "\r\nx-ESP32-sketch-size: " + String(ESP.getSketchSize());
+    if (MD5_Match)
+        hdr += "\r\nx-check-sketch-md5: 1";
+
+    String sketchMD5 = ESP.getSketchMD5();
+    if (sketchMD5.length() != 0)
+    {
+        hdr += "\r\nx-ESP32-sketch-md5: " + sketchMD5;
+    }
+
+    hdr += "\r\nx-ESP32-chip-size: " + String(ESP.getFlashChipSize());
+    hdr += "\r\nx-ESP32-sdk-version: " + String(ESP.getSdkVersion());
+    hdr += "\r\nx-ESP32-mode: sketch";
+
+    return hdr;
+}
+
 /**
  *
  * @param http GsmHttpClient *
@@ -103,22 +128,7 @@ HTTPUpdateResult FlashUpdater::handleUpdate(Client &client, const String &url)
 {
     HTTPUpdateResult ret = HTTPUpdateResult::HTTP_UPDATE_FAILED;
     TinyHTTP http(client);
-    http.user_headers = "\nUser-Agent: ESP32-http-Update"
-                        "\nCache-Control: no-cache";
-    http.user_headers += "\nx-ESP32-STA-MAC: " + WiFi.macAddress();
-    http.user_headers += "\nx-ESP32-AP-MAC: " + WiFi.softAPmacAddress();
-    http.user_headers += "\nx-ESP32-free-space: " + String(ESP.getFreeSketchSpace());
-    http.user_headers += "\nx-ESP32-sketch-size: " + String(ESP.getSketchSize());
-
-    String sketchMD5 = ESP.getSketchMD5();
-    if (sketchMD5.length() != 0)
-    {
-        http.user_headers += "\nx-ESP32-sketch-md5: " + sketchMD5;
-    }
-
-    http.user_headers += "\nx-ESP32-chip-size: " + String(ESP.getFlashChipSize());
-    http.user_headers += "\nx-ESP32-sdk-version: " + String(ESP.getSdkVersion());
-    http.user_headers += "\nx-ESP32-mode: sketch";
+    http.user_headers = createHeaders();
 
     if (!http.get(url, 0, 16))
     {

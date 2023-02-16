@@ -71,16 +71,16 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
 
     client.setTimeout(30 * 1000);
     // use HTTP/1.0 for update since the update handler not support any transfer Encoding
-    http_hdr += "\nHost: " + host;
-    http_hdr += "\nConnection: Keep-Alive";
+    http_hdr += "\r\nHost: " + host;
+    http_hdr += "\r\nConnection: Keep-Alive";
     http_hdr += user_headers;
 
     // const char *headerkeys[] = {"x-MD5"};
     // size_t headerkeyssize = sizeof(headerkeys) / sizeof(char *);
     String total_req = http_get +
                        http_hdr +
-                       (head || partial_len == INT_MAX ? "" : "\nRange: bytes=" + String(partial_st) + "-" + String((partial_st + partial_len) - 1)) +
-                       "\n\n";
+                       (head || partial_len == INT_MAX ? "" : "\r\nRange: bytes=" + String(partial_st) + "-" + String((partial_st + partial_len) - 1)) +
+                       "\r\n\r\n";
     client.print(total_req.c_str());
     client.flush();
 

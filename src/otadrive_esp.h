@@ -15,8 +15,8 @@
 #define updateObj httpUpdate
 #define OTA_FILE_SYS SPIFFS
 
-using fs::FS;
 using fs::File;
+using fs::FS;
 #endif
 
 #ifndef OTADRIVE_URL
@@ -60,11 +60,14 @@ class device_status
     double longitude;
 };
 
+#warning "This version of the OTAdrive library uses the MD5 matcher mechanism instead of the version code mechanism to decide download new firmware or not. If you don't like it, call OTAdrive.useMD5Matcher(false)"
+
 class otadrive_ota
 {
 private:
     uint32_t tickTimestamp = 0;
     const uint16_t TIMEOUT_MS = 10000;
+    bool MD5_Match = true;
 
     String cutLine(String &str);
     String baseParams();
@@ -89,6 +92,7 @@ public:
     bool sendAlive();
     bool sendAlive(Client &client);
 
+    void useMD5Matcher(bool useMd5);
     updateInfo updateFirmware(bool reboot = true);
     updateInfo updateFirmware(Client &client, bool reboot = true);
     updateInfo updateFirmwareInfo();

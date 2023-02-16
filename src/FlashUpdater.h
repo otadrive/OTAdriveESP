@@ -76,6 +76,9 @@ namespace OTAdrive
 
         int getLastError(void);
         String getLastErrorString(void);
+        String createHeaders(void);
+
+        bool MD5_Match = true;
 
     protected:
         t_httpUpdate_return handleUpdate(Client &http, const String &currentVersion);

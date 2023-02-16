@@ -26,6 +26,15 @@ void otadrive_ota::setInfo(String ApiKey, String Version)
     this->Version = Version;
 }
 
+/**
+ * Enable or disable MD5 compare strategy to decide download the new version or not
+ *
+ */
+void otadrive_ota::useMD5Matcher(bool useMd5)
+{
+    MD5_Match = useMd5;
+}
+
 String otadrive_ota::baseParams()
 {
     return "k=" + ProductKey + "&v=" + Version + "&s=" + getChipId();
@@ -260,6 +269,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     url += baseParams();
 
     OTAdrive::FlashUpdater updater;
+    updater.MD5_Match = MD5_Match;
     updater.rebootOnUpdate(false);
     updater.onProgress(updateFirmwareProgress);
     t_httpUpdate_return ret = updater.update(client, url);
@@ -381,6 +391,9 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     url += baseParams();
 
     OTAdrive::TinyHTTP http(client);
+    OTAdrive::FlashUpdater updater;
+    updater.MD5_Match = MD5_Match;
+    http.user_headers = updater.createHeaders();
     http.get(url, 0, 0);
 
     otd_log_i("heads [%d] \n", (int)http.resp_code);

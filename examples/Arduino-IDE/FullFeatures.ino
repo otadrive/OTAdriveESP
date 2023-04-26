@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <otadrive_esp.h>
 
-#define APIKEY "c0af643b-4f90-4905-9807-db8be5164cde"
+#define APIKEY "COPY YOUR APIKEY HERE"
 #define LED 2
 
 void update();
@@ -49,7 +49,7 @@ void setup()
 #endif
   Serial.println("File system Mounted");
 
-  OTADRIVE.setInfo(APIKEY, "2.5.5");
+  OTADRIVE.setInfo(APIKEY, "v@2.5.5");
 
   OTADRIVE.onUpdateFirmwareProgress(onUpdateProgress);
 }

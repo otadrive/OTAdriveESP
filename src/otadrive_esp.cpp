@@ -430,7 +430,7 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
         break;
 
     case HTTP_CODE_OK:
-        inf.available = inf.version != Version;
+        inf.available = true;
         inf.code = update_result::Success;
         break;
     }

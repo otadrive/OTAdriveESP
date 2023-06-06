@@ -83,6 +83,9 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
                        "\r\n\r\n";
     client.print(total_req.c_str());
     client.flush();
+    // clear all junk data
+    while (client.available())
+        client.read();
 
     int content_len = 0;
 

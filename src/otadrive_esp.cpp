@@ -434,6 +434,8 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
         inf.code = update_result::Success;
         break;
     }
+    client.stop();
+    delay(100);
 
     return inf;
 }

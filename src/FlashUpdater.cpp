@@ -284,7 +284,10 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
         size_t rd;
         if (remain_get)
         {
-            rd = http.client.readBytes(tmp_buf, BUF_SIZE);
+            if(remain_get < BUF_SIZE)
+                rd = http.client.readBytes(tmp_buf, remain_get);
+            else
+                rd = http.client.readBytes(tmp_buf, BUF_SIZE);
             remain_get -= rd;
             otd_log_i("Begin Download part %d\n", i);
         }

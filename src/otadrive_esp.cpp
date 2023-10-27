@@ -66,48 +66,6 @@ String otadrive_ota::downloadResourceList(Client &client)
     return res;
 }
 
-// update_result otadrive_ota::head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount)
-// {
-//     WiFiClient client;
-//     HTTPClient http;
-
-//     client.setTimeout(TIMEOUT_MS / 1000);
-// #ifdef ESP32
-//     http.setConnectTimeout(TIMEOUT_MS);
-// #endif
-//     http.setTimeout(TIMEOUT_MS);
-
-//     if (http.begin(client, url))
-//     {
-//         http.collectHeaders(reqHdrs, reqHdrsCount);
-//         int httpCode = http.sendRequest("HEAD");
-
-//         // httpCode will be negative on error
-//         if (httpCode == HTTP_CODE_OK)
-//         {
-//             String hdrs = "";
-//             for (uint8_t i = 0; i < http.headers(); i++)
-//                 hdrs += http.headerName(i) + ": " + http.header(i) + "\n";
-//             resultStr = hdrs;
-//             return update_result::Success;
-//         }
-//         else
-//         {
-//             otd_log_e("downloaded error %d, %s", httpCode, http.errorToString(httpCode).c_str());
-//             if (httpCode == 404)
-//                 return update_result::NoFirmwareExists;
-//             else if (httpCode == 304)
-//                 return update_result::AlreadyUpToDate;
-//             else if (httpCode == 401)
-//                 return update_result::DeviceUnauthorized;
-//             return update_result::ConnectError;
-//         }
-//     }
-
-//     resultStr = "";
-//     return update_result::ConnectError;
-// }
-
 bool otadrive_ota::download(Client &client, String url, File *file, String *outStr)
 {
     OTAdrive::TinyHTTP http(client);
@@ -308,9 +266,12 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
  */
 updateInfo otadrive_ota::updateFirmware(bool reboot)
 {
+    WiFiClient client;
 #ifdef ESP32
     esp_task_wdt_init(45, true);
+    return updateFirmware(client, reboot)0
 #endif
+
     updateInfo inf = updateFirmwareInfo();
 
     if (!inf.available)
@@ -322,7 +283,7 @@ updateInfo otadrive_ota::updateFirmware(bool reboot)
     String url = OTADRIVE_URL "update?";
     url += baseParams();
 
-    WiFiClient client;
+    
 
     Update.onProgress(updateFirmwareProgress);
     updateObj.rebootOnUpdate(false);

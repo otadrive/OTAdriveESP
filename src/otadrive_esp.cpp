@@ -269,7 +269,7 @@ updateInfo otadrive_ota::updateFirmware(bool reboot)
     WiFiClient client;
 #ifdef ESP32
     esp_task_wdt_init(45, true);
-    return updateFirmware(client, reboot)0
+    return updateFirmware(client, reboot);
 #endif
 
     updateInfo inf = updateFirmwareInfo();

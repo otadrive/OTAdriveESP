@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <FS.h>
+#include "KeyValueList.h"
 
 #ifdef ESP8266
 #include <ESP8266httpUpdate.h>
@@ -104,8 +105,12 @@ public:
     bool syncResources();
     bool syncResources(Client &client);
     void setFileSystem(FS *fileObj);
-    String getConfigs();
-    String getConfigs(Client &client);
+
+    String getJsonConfigs();
+    String getJsonConfigs(Client &client);
+
+    OTAdrive_ns::KeyValueList getConfigValues();
+    OTAdrive_ns::KeyValueList getConfigValues(Client &client);
 
     bool timeTick(uint16_t seconds);
 

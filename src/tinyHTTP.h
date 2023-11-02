@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <Client.h>
 
-namespace OTAdrive
+namespace OTAdrive_ns
 {
     class TinyHTTP
     {

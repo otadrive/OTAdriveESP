@@ -10,7 +10,7 @@
 #include <HTTPUpdate.h>
 #include "tinyHTTP.h"
 
-namespace OTAdrive
+namespace OTAdrive_ns
 {
 /// note we use HTTP client errors too so we start at 100
 #define HTTP_UE_TOO_LESS_SPACE (-100)

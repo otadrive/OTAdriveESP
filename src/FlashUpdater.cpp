@@ -6,7 +6,7 @@
 #include <esp_ota_ops.h> // get running partition
 #include <otadrive_esp.h>
 
-using namespace OTAdrive;
+using namespace OTAdrive_ns;
 
 // To do extern "C" uint32_t _SPIFFS_start;
 // To do extern "C" uint32_t _SPIFFS_end;

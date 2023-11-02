@@ -9,7 +9,7 @@
 #include <otadrive_esp.h>
 #endif
 
-using namespace OTAdrive;
+using namespace OTAdrive_ns;
 
 #define REQ_PARTIAL_LEN (1024 * 32)
 
@@ -74,6 +74,9 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     // use HTTP/1.0 for update since the update handler not support any transfer Encoding
     http_hdr += "\r\nHost: " + host;
     http_hdr += "\r\nConnection: Keep-Alive";
+    http_hdr += "\r\nCache-Control: no-cache, no-store, must-revalidate";
+    http_hdr += "\r\nPragma: no-cache";
+    http_hdr += "\r\nExpires: 0";
     http_hdr += user_headers;
 
     // const char *headerkeys[] = {"x-MD5"};
@@ -82,7 +85,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
                        http_hdr +
                        (head || partial_len == INT_MAX ? "" : "\r\nRange: bytes=" + String(partial_st) + "-" + String((partial_st + partial_len) - 1)) +
                        "\r\n\r\n";
-    otd_log_d("request: %s\n", total_req.c_str());
+    otd_log_d("request: %s", total_req.c_str());
     client.print(total_req.c_str());
     client.flush();
     // clear all junk data
@@ -92,7 +95,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     int content_len = 0;
 
     String resp = client.readStringUntil('\n');
-    otd_log_d("hdr %s\n", resp.c_str());
+    otd_log_d("hdr %s", resp.c_str());
     // HTTP/1.1 401 Unauthorized
     // HTTP/1.1 200 OK
     if (!resp.startsWith("HTTP/1.1 "))
@@ -111,20 +114,21 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     {
         resp = client.readStringUntil('\n');
         resp.trim();
-        otd_log_i("hdr %s\n", resp.c_str());
-        if (resp.startsWith("Content-Length"))
+        resp.toLowerCase();
+        otd_log_i("hdr %s", resp.c_str());
+        if (resp.startsWith("content-length"))
         {
             content_len = resp.substring(16).toInt();
         }
-        else if (resp.startsWith("x-MD5"))
+        else if (resp.startsWith("x-md5"))
         {
             xMD5 = resp.substring(7);
         }
-        else if (resp.startsWith("X-Version"))
+        else if (resp.startsWith("x-version"))
         {
             xVersion = resp.substring(11);
         }
-        else if (resp.startsWith("Content-Range: bytes"))
+        else if (resp.startsWith("content-range: bytes"))
         {
             // Content-Range: bytes 0-51199/939504
             int total_ind = resp.indexOf('/');

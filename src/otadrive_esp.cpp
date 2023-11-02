@@ -68,8 +68,9 @@ String otadrive_ota::downloadResourceList(Client &client)
 
 bool otadrive_ota::download(Client &client, String url, File *file, String *outStr)
 {
-    OTAdrive::TinyHTTP http(client);
+    OTAdrive_ns::TinyHTTP http(client);
     client.setTimeout(TIMEOUT_MS / 1000);
+    http.user_headers = "\r\nIf-None-Match: \"686897696a7c876b7e\"";
 
     if (http.get(url))
     {
@@ -226,7 +227,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     String url = OTADRIVE_URL "update?";
     url += baseParams();
 
-    OTAdrive::FlashUpdater updater;
+    OTAdrive_ns::FlashUpdater updater;
     updater.MD5_Match = MD5_Match;
     updater.rebootOnUpdate(false);
     updater.onProgress(updateFirmwareProgress);
@@ -282,8 +283,6 @@ updateInfo otadrive_ota::updateFirmware(bool reboot)
 
     String url = OTADRIVE_URL "update?";
     url += baseParams();
-
-    
 
     Update.onProgress(updateFirmwareProgress);
     updateObj.rebootOnUpdate(false);
@@ -347,24 +346,27 @@ updateInfo otadrive_ota::updateFirmwareInfo()
 updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
 {
     updateInfo inf;
-
     String url = OTADRIVE_URL "update?";
     url += baseParams();
 
-    OTAdrive::TinyHTTP http(client);
+    inf.available = false;
+    inf.code = update_result::ConnectError;
+
+    OTAdrive_ns::TinyHTTP http(client);
 #ifdef ESP32
-    OTAdrive::FlashUpdater updater;
+    OTAdrive_ns::FlashUpdater updater;
     updater.MD5_Match = MD5_Match;
     http.user_headers = updater.createHeaders();
 #else
 
 #endif
-    http.get(url, 0, 0);
+    if (!http.get(url, 0, 0))
+    {
+        otd_log_e("http error\n");
+        return inf;
+    }
 
     otd_log_i("heads [%d] \n", (int)http.resp_code);
-
-    inf.available = false;
-    inf.code = update_result::ConnectError;
     inf.version = http.xVersion;
     inf.size = http.total_len;
 
@@ -401,25 +403,47 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     return inf;
 }
 
-String otadrive_ota::getConfigs()
+String otadrive_ota::getJsonConfigs()
 {
     WiFiClient client;
-    return getConfigs(client);
+    return getJsonConfigs(client);
 }
 /**
  * Call configuration API of the OTAdrive server and gets device configuration as string
  *
  * @return configuration of device as String
  */
-String otadrive_ota::getConfigs(Client &client)
+String otadrive_ota::getJsonConfigs(Client &client)
 {
     String url = OTADRIVE_URL "getconfig?";
     url += baseParams();
 
-    String conf;
+    String conf = "";
     download(client, url, nullptr, &conf);
 
     return conf;
+}
+
+OTAdrive_ns::KeyValueList otadrive_ota::getConfigValues()
+{
+    WiFiClient client;
+    return getConfigValues(client);
+}
+
+OTAdrive_ns::KeyValueList otadrive_ota::getConfigValues(Client &client)
+{
+    String url = OTADRIVE_URL "getconfig?plain&";
+    url += baseParams();
+
+    String conf = "";
+    download(client, url, nullptr, &conf);
+
+    log_d("config download: %s\n", conf.c_str());
+
+    OTAdrive_ns::KeyValueList list;
+    list.load(conf);
+
+    return list;
 }
 
 size_t updateInfo::printTo(Print &p) const

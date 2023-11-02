@@ -106,6 +106,11 @@ public:
     bool syncResources(Client &client);
     void setFileSystem(FS *fileObj);
 
+    [[deprecated("Use getJsonConfigs().")]]    
+    String getConfigs();
+    [[deprecated("Use getJsonConfigs(Client).")]]    
+    String getConfigs(Client &client);
+
     String getJsonConfigs();
     String getJsonConfigs(Client &client);
 

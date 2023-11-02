@@ -403,6 +403,16 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     return inf;
 }
 
+String otadrive_ota::getConfigs()
+{
+    return getJsonConfigs();
+}
+
+String otadrive_ota::getConfigs(Client &client)
+{
+    return getJsonConfigs(client);
+}
+
 String otadrive_ota::getJsonConfigs()
 {
     WiFiClient client;

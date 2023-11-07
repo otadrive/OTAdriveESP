@@ -1,14 +1,13 @@
 
-#if !defined(___GSMHTTP_UPDATE_H___) && defined(ESP32)
+#if !defined(___GSMHTTP_UPDATE_H___)// && defined(ESP32)
 #define ___GSMHTTP_UPDATE_H___
 
 #include <Arduino.h>
-#include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
-#include <Update.h>
-#include <HTTPUpdate.h>
 #include "tinyHTTP.h"
+#include "otadrive_esp.h"
+#include "types.h"
 
 namespace OTAdrive_ns
 {
@@ -51,22 +50,13 @@ namespace OTAdrive_ns
             _rebootOnUpdate = reboot;
         }
 
-        /**
-         * set redirect follow mode. See `followRedirects_t` enum for avaliable modes.
-         * @param follow
-         */
-        void setFollowRedirects(followRedirects_t follow)
-        {
-            _followRedirects = follow;
-        }
-
         void setLedPin(int ledPin = -1, uint8_t ledOn = HIGH)
         {
             _ledPin = ledPin;
             _ledOn = ledOn;
         }
 
-        t_httpUpdate_return update(Client &client, const String &url);
+        FotaResult update(Client &client, const String &url);
 
         // Notification callbacks
         void onStart(HTTPUpdateStartCB cbOnStart) { _cbStart = cbOnStart; }
@@ -81,8 +71,8 @@ namespace OTAdrive_ns
         bool MD5_Match = true;
 
     protected:
-        t_httpUpdate_return handleUpdate(Client &http, const String &currentVersion);
-        bool runUpdate(TinyHTTP http, int command = U_FLASH);
+        FotaResult handleUpdate(Client &http, const String &currentVersion);
+        bool runUpdate(TinyHTTP http, int command = 0); // U_FLASH
 
         // Set the error and potentially use a CB to notify the application
         void _setLastError(int err)
@@ -98,7 +88,6 @@ namespace OTAdrive_ns
 
     private:
         int _httpClientTimeout;
-        followRedirects_t _followRedirects;
 
         // Callbacks
         HTTPUpdateStartCB _cbStart;

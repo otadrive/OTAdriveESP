@@ -1,4 +1,5 @@
 #include "KeyValueList.h"
+#include "otadrive_esp.h"
 
 using namespace OTAdrive_ns;
 
@@ -26,7 +27,7 @@ String KeyValueList::value(String key)
                     if (v[i] == '\n')
                         break;
                 }
-                log_d("result %s=%s\n", key.c_str(), result.c_str());
+                otd_log_d("result %s=%s\n", key.c_str(), result.c_str());
                 return result;
             }
         }
@@ -42,7 +43,7 @@ String KeyValueList::value(String key)
         }
     }
 
-    log_e("config key %s not found\n", key.c_str());
+    otd_log_e("config key %s not found\n", key.c_str());
     return "";
 }
 
@@ -78,7 +79,7 @@ bool KeyValueList::containsKey(String key)
         }
     }
 
-    log_e("config key %s not found\n", key.c_str());
+    otd_log_e("config key %s not found\n", key.c_str());
     return false;
 }
 

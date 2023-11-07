@@ -1,3 +1,5 @@
+#pragma once
+
 // OTAdrive.com CA certificate
 const char otadrv_ca[] =
     "-----BEGIN CERTIFICATE-----\n\

@@ -1,4 +1,5 @@
 #include "otadrive_esp.h"
+#include <MD5Builder.h>
 
 String otadrive_ota::cutLine(String &str)
 {

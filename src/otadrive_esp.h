@@ -5,16 +5,14 @@
 #include <FS.h>
 #include "KeyValueList.h"
 #include "otadrive_cert.h"
+#include "FlashUpdater.h"
+#include "types.h"
 
 #ifdef ESP8266
-#include <ESP8266httpUpdate.h>
 #include <LittleFS.h>
-#define updateObj ESPhttpUpdate
 #define OTA_FILE_SYS LittleFS
 #elif defined(ESP32)
-#include <HTTPUpdate.h>
 #include <SPIFFS.h>
-#define updateObj httpUpdate
 #define OTA_FILE_SYS SPIFFS
 
 using fs::File;
@@ -24,19 +22,10 @@ using fs::FS;
 #ifndef OTADRIVE_URL
 #define OTADRIVE_URL "http://otadrive.com/deviceapi/"
 #endif
-#define OTADRIVE_SDK_VER "20"
+#define OTADRIVE_SDK_VER "21"
 
 class otadrive_ota;
 class updateInfo;
-
-enum class update_result : int
-{
-    ConnectError = 0,
-    DeviceUnauthorized = 401,
-    AlreadyUpToDate = 304,
-    NoFirmwareExists = 404,
-    Success = 200
-};
 
 class updateInfo : public Printable
 {
@@ -62,10 +51,6 @@ class device_status
     double latitude;
     double longitude;
 };
-
-#ifdef ESP32
-#warning "This version of the OTAdrive library uses the MD5 matcher mechanism instead of the version code mechanism to decide download new firmware or not. If you don't like it, call OTAdrive.useMD5Matcher(false)"
-#endif
 
 class otadrive_ota
 {
@@ -130,8 +115,14 @@ private:
 
 extern otadrive_ota OTADRIVE;
 
-#define otd_pre "[OTAdrive]"
-#ifdef ESP8266
+#define otd_pre ""
+
+#ifdef DEBUGV
+#define otd_log_v(format, ...) DEBUGV("[V]" otd_pre format "\n", ##__VA_ARGS__)
+#define otd_log_d(format, ...) DEBUGV("[D]" otd_pre format "\n", ##__VA_ARGS__)
+#define otd_log_i(format, ...) DEBUGV("[I]" otd_pre format "\n", ##__VA_ARGS__)
+#define otd_log_e(format, ...) DEBUGV("[E]" otd_pre format "\n", ##__VA_ARGS__)
+#elif defined(ESP8266)
 #if ARDUHAL_LOG_LEVEL >= 5
 #define otd_log_v(format, ...) Serial.printf("[V]" otd_pre format "\n", ##__VA_ARGS__)
 #else

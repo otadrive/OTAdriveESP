@@ -89,7 +89,7 @@ bool otadrive_ota::download(Client &client, String url, File *file, String *outS
     if (http.get(url))
     {
         // httpCode will be negative on error
-        if (http.resp_code == HTTP_CODE_OK)
+        if (http.resp_code == 200)
         {
             if (file)
             {
@@ -225,7 +225,6 @@ bool otadrive_ota::sendAlive(Client &client)
     return download(client, url, nullptr, nullptr);
 }
 
-#ifdef ESP32
 updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 {
 #ifdef ESP32
@@ -245,19 +244,19 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
     updater.MD5_Match = MD5_Match;
     updater.rebootOnUpdate(false);
     updater.onProgress(updateFirmwareProgress);
-    t_httpUpdate_return ret = updater.update(client, url);
+    FotaResult ret = updater.update(client, url);
 
     switch (ret)
     {
-    case HTTP_UPDATE_FAILED:
-        otd_log_i("HTTP_UPDATE_FAILED Error (%d): %s\n", updateObj.getLastError(), updateObj.getLastErrorString().c_str());
+    case FOTA_UPDATE_FAILED:
+        otd_log_i("HTTP_UPDATE_FAILED Error");
         break;
 
-    case HTTP_UPDATE_NO_UPDATES:
+    case FOTA_UPDATE_NO_UPDATES:
         otd_log_i("HTTP_UPDATE_NO_UPDATES");
         break;
 
-    case HTTP_UPDATE_OK:
+    case FOTA_UPDATE_OK:
     {
         Version = inf.version;
         sendAlive(client);
@@ -273,7 +272,6 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 
     return inf;
 }
-#endif
 
 /**
  * Call update API of the OTAdrive server and download new firmware version if available
@@ -284,49 +282,8 @@ updateInfo otadrive_ota::updateFirmware(bool reboot)
     WiFiClient client;
 #ifdef ESP32
     esp_task_wdt_init(45, true);
-    return updateFirmware(client, reboot);
 #endif
-
-    updateInfo inf = updateFirmwareInfo();
-
-    if (!inf.available)
-    {
-        otd_log_i("No new firmware available");
-        return inf;
-    }
-
-    String url = serverUrl("update?");
-    url += baseParams();
-
-    Update.onProgress(updateFirmwareProgress);
-    updateObj.rebootOnUpdate(false);
-    t_httpUpdate_return ret = updateObj.update(client, url, Version);
-
-    switch (ret)
-    {
-    case HTTP_UPDATE_FAILED:
-        otd_log_i("HTTP_UPDATE_FAILED Error (%d): %s\n", updateObj.getLastError(), updateObj.getLastErrorString().c_str());
-        break;
-
-    case HTTP_UPDATE_NO_UPDATES:
-        otd_log_i("HTTP_UPDATE_NO_UPDATES");
-        break;
-
-    case HTTP_UPDATE_OK:
-    {
-        Version = inf.version;
-        sendAlive();
-        otd_log_i("HTTP_UPDATE_OK");
-        if (reboot)
-            ESP.restart();
-        break;
-    }
-    default:
-        otd_log_i("HTTP_UPDATE_CODE: %d", ret);
-        break;
-    }
-
-    return inf;
+    return updateFirmware(client, reboot);
 }
 
 /**
@@ -391,22 +348,26 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
         inf.code = update_result::ConnectError;
         break;
 
-    case HTTP_CODE_NOT_FOUND:
+    case 404:
+        // HTTP_CODE_NOT_FOUND
         otd_log_i("not found error\n");
         inf.code = update_result::NoFirmwareExists;
         break;
 
-    case HTTP_CODE_NOT_MODIFIED:
+    case 304:
+        // HTTP_CODE_NOT_MODIFIED
         otd_log_i("no new firmware\n");
         inf.code = update_result::AlreadyUpToDate;
         break;
 
-    case HTTP_CODE_UNAUTHORIZED:
+    case 401:
+        // HTTP_CODE_UNAUTHORIZED
         otd_log_e("unauthorized error\n");
         inf.code = update_result::DeviceUnauthorized;
         break;
 
-    case HTTP_CODE_OK:
+    case 200:
+        // HTTP_CODE_OK
         inf.available = true;
         inf.code = update_result::Success;
         break;
@@ -462,7 +423,7 @@ OTAdrive_ns::KeyValueList otadrive_ota::getConfigValues(Client &client)
     String conf = "";
     download(client, url, nullptr, &conf);
 
-    log_d("config download: %s\n", conf.c_str());
+    otd_log_d("config download: %s\n", conf.c_str());
 
     OTAdrive_ns::KeyValueList list;
     list.load(conf);

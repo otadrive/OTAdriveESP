@@ -1,12 +1,9 @@
-#ifdef ESP32
+#ifdef ESP8266
 #include "FlashUpdater.h"
 #include <StreamString.h>
 #include "tinyHTTP.h"
-#include <esp_partition.h>
-#include <esp_ota_ops.h> // get running partition
 #include <otadrive_esp.h>
-#include <Update.h>
-#include <WiFi.h>
+#include <ESP8266WiFi.h>
 
 using namespace OTAdrive_ns;
 
@@ -93,20 +90,20 @@ String FlashUpdater::createHeaders(void)
     String hdr = "";
     hdr = "\r\nUser-Agent: OTAdrive-SDK-v" OTADRIVE_SDK_VER
           "\r\nCache-Control: no-cache";
-    hdr += "\r\nx-ESP32-STA-MAC: " + WiFi.macAddress();
-    hdr += "\r\nx-ESP32-AP-MAC: " + WiFi.softAPmacAddress();
-    hdr += "\r\nx-ESP32-free-space: " + String(ESP.getFreeSketchSpace());
-    hdr += "\r\nx-ESP32-sketch-size: " + String(ESP.getSketchSize());
+    hdr += "\r\nx-ESP8266-STA-MAC: " + WiFi.macAddress();
+    hdr += "\r\nx-ESP8266-AP-MAC: " + WiFi.softAPmacAddress();
+    hdr += "\r\nx-ESP8266-free-space: " + String(ESP.getFreeSketchSpace());
+    hdr += "\r\nx-ESP8266-sketch-size: " + String(ESP.getSketchSize());
 
     String sketchMD5 = ESP.getSketchMD5();
     if (sketchMD5.length() != 0)
     {
-        hdr += "\r\nx-ESP32-sketch-md5: " + sketchMD5;
+        hdr += "\r\nx-ESP8266-sketch-md5: " + sketchMD5;
     }
 
-    hdr += "\r\nx-ESP32-chip-size: " + String(ESP.getFlashChipSize());
-    hdr += "\r\nx-ESP32-sdk-version: " + String(ESP.getSdkVersion());
-    hdr += "\r\nx-ESP32-mode: sketch";
+    hdr += "\r\nx-ESP8266-chip-size: " + String(ESP.getFlashChipSize());
+    hdr += "\r\nx-ESP8266-sdk-version: " + String(ESP.getSdkVersion());
+    hdr += "\r\nx-ESP8266-mode: sketch";
 
     return hdr;
 }
@@ -184,7 +181,7 @@ FotaResult FlashUpdater::handleUpdate(Client &client, const String &url)
             //     log_e("New binary does not fit SPI Flash size\n");
             //     _lastError = HTTP_UE_BIN_FOR_WRONG_FLASH;
             //     client.stop();
-            //     return HTTP_UPDATE_FAILED;
+            //     return FOTA_UPDATE_FAILED;
             // }
 
             if (runUpdate(http, U_FLASH))

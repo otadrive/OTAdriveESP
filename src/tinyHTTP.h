@@ -9,11 +9,12 @@ namespace OTAdrive_ns
         String _url;
         String host;
         String uri;
+        bool _useSSL;
 
         bool begin_connect(const String &url);
 
     public:
-        TinyHTTP(Client &c);
+        TinyHTTP(Client &c, bool useSSL = false);
         bool get(String url, int partial_st = 0, int partial_len = INT_MAX);
         String user_headers;
 

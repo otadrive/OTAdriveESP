@@ -26,6 +26,19 @@ void otadrive_ota::setInfo(String ApiKey, String Version)
     this->Version = Version;
 }
 
+void otadrive_ota::useSSL(bool ssl)
+{
+    _useSSL = ssl;
+}
+
+String otadrive_ota::serverUrl(String uri)
+{
+    String url = OTADRIVE_URL;
+    url += uri;
+    if (_useSSL)
+        url.replace("http:", "https:");
+    return url;
+}
 /**
  * Enable or disable MD5 compare strategy to decide download the new version or not
  *
@@ -58,7 +71,7 @@ String otadrive_ota::getChipId()
 
 String otadrive_ota::downloadResourceList(Client &client)
 {
-    String url = OTADRIVE_URL "resource/list?plain&";
+    String url = serverUrl("resource/list?plain&");
     url += baseParams();
 
     String res;
@@ -68,7 +81,7 @@ String otadrive_ota::downloadResourceList(Client &client)
 
 bool otadrive_ota::download(Client &client, String url, File *file, String *outStr)
 {
-    OTAdrive_ns::TinyHTTP http(client);
+    OTAdrive_ns::TinyHTTP http(client, _useSSL);
     client.setTimeout(TIMEOUT_MS / 1000);
     http.user_headers = "\r\nIf-None-Match: \"686897696a7c876b7e\"";
 
@@ -146,7 +159,7 @@ bool otadrive_ota::syncResources(Client &client)
     }
 
     String list = downloadResourceList(client);
-    String baseurl = OTADRIVE_URL "resource/get?";
+    String baseurl = serverUrl("resource/get?");
     baseurl += baseParams();
 
     while (list.length())
@@ -206,7 +219,7 @@ bool otadrive_ota::sendAlive()
  */
 bool otadrive_ota::sendAlive(Client &client)
 {
-    String url = OTADRIVE_URL "alive?";
+    String url = serverUrl("alive?");
     url += baseParams();
     return download(client, url, nullptr, nullptr);
 }
@@ -224,7 +237,7 @@ updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
         return inf;
     }
 
-    String url = OTADRIVE_URL "update?";
+    String url = serverUrl("update?");
     url += baseParams();
 
     OTAdrive_ns::FlashUpdater updater;
@@ -281,7 +294,7 @@ updateInfo otadrive_ota::updateFirmware(bool reboot)
         return inf;
     }
 
-    String url = OTADRIVE_URL "update?";
+    String url = serverUrl("update?");
     url += baseParams();
 
     Update.onProgress(updateFirmwareProgress);
@@ -346,13 +359,13 @@ updateInfo otadrive_ota::updateFirmwareInfo()
 updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
 {
     updateInfo inf;
-    String url = OTADRIVE_URL "update?";
+    String url = serverUrl("update?");
     url += baseParams();
 
     inf.available = false;
     inf.code = update_result::ConnectError;
 
-    OTAdrive_ns::TinyHTTP http(client);
+    OTAdrive_ns::TinyHTTP http(client, _useSSL);
 #ifdef ESP32
     OTAdrive_ns::FlashUpdater updater;
     updater.MD5_Match = MD5_Match;
@@ -425,7 +438,7 @@ String otadrive_ota::getJsonConfigs()
  */
 String otadrive_ota::getJsonConfigs(Client &client)
 {
-    String url = OTADRIVE_URL "getconfig?";
+    String url = serverUrl("getconfig?");
     url += baseParams();
 
     String conf = "";
@@ -442,7 +455,7 @@ OTAdrive_ns::KeyValueList otadrive_ota::getConfigValues()
 
 OTAdrive_ns::KeyValueList otadrive_ota::getConfigValues(Client &client)
 {
-    String url = OTADRIVE_URL "getconfig?plain&";
+    String url = serverUrl("getconfig?plain&");
     url += baseParams();
 
     String conf = "";

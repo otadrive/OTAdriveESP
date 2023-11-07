@@ -13,18 +13,20 @@ using namespace OTAdrive_ns;
 
 #define REQ_PARTIAL_LEN (1024 * 32)
 
-TinyHTTP::TinyHTTP(Client &c) : client(c)
+TinyHTTP::TinyHTTP(Client &c, bool useSSL) : client(c)
 {
+    _useSSL = useSSL;
 }
 
 bool TinyHTTP::begin_connect(const String &url)
 {
     String u = url;
+    int port = _useSSL ? 443 : 80;
     // TODO: HTTPS Not supported yet
     if (u.startsWith("https://"))
     {
-        return false;
         u.remove(0, 8);
+        port = 443;
     }
     else if (u.startsWith("http://"))
         u.remove(0, 7);
@@ -41,7 +43,7 @@ bool TinyHTTP::begin_connect(const String &url)
     {
         if (tr == 3)
             return false;
-        if (!client.connect(host.c_str(), 80))
+        if (!client.connect(host.c_str(), port))
         {
             otd_log_e("connect to %s faild\n", host.c_str());
             continue;

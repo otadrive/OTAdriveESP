@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <FS.h>
 #include "KeyValueList.h"
+#include "otadrive_cert.h"
 
 #ifdef ESP8266
 #include <ESP8266httpUpdate.h>
@@ -71,8 +72,10 @@ private:
     uint32_t tickTimestamp = 0;
     const uint16_t TIMEOUT_MS = 10000;
     bool MD5_Match = true;
+    bool _useSSL;
 
     String cutLine(String &str);
+    String serverUrl(String uri);
     String baseParams();
     bool download(Client &client, String url, File *file, String *outStr);
     // update_result head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount);
@@ -91,7 +94,8 @@ public:
     otadrive_ota();
     void setInfo(String ApiKey, String Version);
     String getChipId();
-
+    void useSSL(bool ssl);
+    
     bool sendAlive();
     bool sendAlive(Client &client);
 

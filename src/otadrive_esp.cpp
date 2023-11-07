@@ -83,7 +83,8 @@ bool otadrive_ota::download(Client &client, String url, File *file, String *outS
 {
     OTAdrive_ns::TinyHTTP http(client, _useSSL);
     client.setTimeout(TIMEOUT_MS / 1000);
-    http.user_headers = "\r\nIf-None-Match: \"686897696a7c876b7e\"";
+    http.user_headers = OTAdrive_ns::FlashUpdater::createHeaders();
+    http.user_headers += "\r\nIf-None-Match: \"686897696a7c876b7e\"";
 
     if (http.get(url))
     {
@@ -369,7 +370,7 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
 #ifdef ESP32
     OTAdrive_ns::FlashUpdater updater;
     updater.MD5_Match = MD5_Match;
-    http.user_headers = updater.createHeaders();
+    http.user_headers = OTAdrive_ns::FlashUpdater::createHeaders();
 #else
 
 #endif

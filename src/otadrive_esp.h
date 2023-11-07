@@ -24,6 +24,7 @@ using fs::FS;
 #ifndef OTADRIVE_URL
 #define OTADRIVE_URL "http://otadrive.com/deviceapi/"
 #endif
+#define OTADRIVE_SDK_VER "19"
 
 class otadrive_ota;
 class updateInfo;
@@ -131,6 +132,11 @@ extern otadrive_ota OTADRIVE;
 
 #define otd_pre "[OTAdrive]"
 #ifdef ESP8266
+#if ARDUHAL_LOG_LEVEL >= 5
+#define otd_log_v(format, ...) Serial.printf("[V]" otd_pre format "\n", ##__VA_ARGS__)
+#else
+#define otd_log_v(format, ...)
+#endif
 #if ARDUHAL_LOG_LEVEL >= 4
 #define otd_log_d(format, ...) Serial.printf("[D]" otd_pre format "\n", ##__VA_ARGS__)
 #else
@@ -148,6 +154,7 @@ extern otadrive_ota OTADRIVE;
 #endif
 // end ESP8266
 #elif defined(ESP32)
+#define otd_log_v(format, ...) log_v(format, ##__VA_ARGS__)
 #define otd_log_d(format, ...) log_d(format, ##__VA_ARGS__)
 #define otd_log_i(format, ...) log_i(format, ##__VA_ARGS__)
 #define otd_log_e(format, ...) log_e(format, ##__VA_ARGS__)

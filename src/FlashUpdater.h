@@ -76,7 +76,7 @@ namespace OTAdrive_ns
 
         int getLastError(void);
         String getLastErrorString(void);
-        String createHeaders(void);
+        static String createHeaders(void);
 
         bool MD5_Match = true;
 

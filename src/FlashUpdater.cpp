@@ -96,14 +96,12 @@ String FlashUpdater::getLastErrorString(void)
 String FlashUpdater::createHeaders(void)
 {
     String hdr = "";
-    hdr = "\r\nUser-Agent: ESP32-http-Update"
+    hdr = "\r\nUser-Agent: OTAdrive-SDK-v" OTADRIVE_SDK_VER
           "\r\nCache-Control: no-cache";
     hdr += "\r\nx-ESP32-STA-MAC: " + WiFi.macAddress();
     hdr += "\r\nx-ESP32-AP-MAC: " + WiFi.softAPmacAddress();
     hdr += "\r\nx-ESP32-free-space: " + String(ESP.getFreeSketchSpace());
     hdr += "\r\nx-ESP32-sketch-size: " + String(ESP.getSketchSize());
-    if (MD5_Match)
-        hdr += "\r\nx-check-sketch-md5: 1";
 
     String sketchMD5 = ESP.getSketchMD5();
     if (sketchMD5.length() != 0)
@@ -129,6 +127,8 @@ HTTPUpdateResult FlashUpdater::handleUpdate(Client &client, const String &url)
     HTTPUpdateResult ret = HTTPUpdateResult::HTTP_UPDATE_FAILED;
     TinyHTTP http(client);
     http.user_headers = createHeaders();
+    if (MD5_Match)
+        http.user_headers += "\r\nx-check-sketch-md5: 1";
 
     if (!http.get(url, 0, 16))
     {
@@ -280,7 +280,7 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
 
     for (uint32_t i = 0; i < http.total_len; tmp_buf)
     {
-        otd_log_i("Begin Download part ind:%d, get buf:%d,rem:%d\n", i, remain_get, remain);
+        otd_log_v("part i:%d,buf:%d,rem:%d", i, remain_get, remain);
         size_t rd;
         if (remain_get)
         {
@@ -289,7 +289,6 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
             else
                 rd = http.client.readBytes(tmp_buf, BUF_SIZE);
             remain_get -= rd;
-            otd_log_i("Begin Download part %d\n", i);
         }
         else
         {
@@ -319,7 +318,6 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
         }
 
         remain -= rd;
-        otd_log_i("Downloaded part %d-%d %d\n", i, rd, remain);
         if (rd == 0)
         {
             // Update.printError(error);
@@ -341,8 +339,7 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
         }
 
         i += rd;
-
-        otd_log_i("U[%d] %d,%d\n", millis() - t0, http.total_len, i);
+        
         if (_cbProgress)
         {
             _cbProgress(i, http.total_len);

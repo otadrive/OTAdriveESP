@@ -87,7 +87,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
                        http_hdr +
                        (head || partial_len == INT_MAX ? "" : "\r\nRange: bytes=" + String(partial_st) + "-" + String((partial_st + partial_len) - 1)) +
                        "\r\n\r\n";
-    otd_log_d("request: %s", total_req.c_str());
+    otd_log_v("request: %s", total_req.c_str());
     client.print(total_req.c_str());
     client.flush();
     // clear all junk data
@@ -97,7 +97,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
     int content_len = 0;
 
     String resp = client.readStringUntil('\n');
-    otd_log_d("hdr %s", resp.c_str());
+    otd_log_i("hdr %s", resp.c_str());
     // HTTP/1.1 401 Unauthorized
     // HTTP/1.1 200 OK
     if (!resp.startsWith("HTTP/1.1 "))
@@ -117,7 +117,7 @@ bool TinyHTTP::get(String url, int partial_st, int partial_len)
         resp = client.readStringUntil('\n');
         resp.trim();
         resp.toLowerCase();
-        otd_log_i("hdr %s", resp.c_str());
+        otd_log_v("hdr %s", resp.c_str());
         if (resp.startsWith("content-length"))
         {
             content_len = resp.substring(16).toInt();

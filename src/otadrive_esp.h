@@ -22,7 +22,7 @@ using fs::FS;
 #ifndef OTADRIVE_URL
 #define OTADRIVE_URL "http://otadrive.com/deviceapi/"
 #endif
-#define OTADRIVE_SDK_VER "21"
+#define OTADRIVE_SDK_VER "22"
 
 class otadrive_ota;
 class updateInfo;

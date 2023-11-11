@@ -324,13 +324,11 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     inf.code = update_result::ConnectError;
 
     OTAdrive_ns::TinyHTTP http(client, _useSSL);
-#ifdef ESP32
+
     OTAdrive_ns::FlashUpdater updater;
     updater.MD5_Match = MD5_Match;
     http.user_headers = OTAdrive_ns::FlashUpdater::createHeaders();
-#else
 
-#endif
     if (!http.get(url, 0, 0))
     {
         otd_log_e("http error\n");

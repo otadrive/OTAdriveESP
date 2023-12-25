@@ -23,11 +23,11 @@ String KeyValueList::value(String key)
             {
                 for (; i < vlen; i++)
                 {
-                    result += v[i];
                     if (v[i] == '\n')
                         break;
+                    result += v[i];
                 }
-                otd_log_d("result %s=%s\n", key.c_str(), result.c_str());
+                otd_log_d("result %s=%s", key.c_str(), result.c_str());
                 return result;
             }
         }
@@ -43,7 +43,7 @@ String KeyValueList::value(String key)
         }
     }
 
-    otd_log_e("config key %s not found\n", key.c_str());
+    otd_log_e("config key %s not found", key.c_str());
     return "";
 }
 
@@ -79,7 +79,7 @@ bool KeyValueList::containsKey(String key)
         }
     }
 
-    otd_log_e("config key %s not found\n", key.c_str());
+    otd_log_e("config key %s not found", key.c_str());
     return false;
 }
 

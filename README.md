@@ -188,6 +188,10 @@ if(OTADRIVE.timeTick(300))
 }
 ```
 # Changes History
+## 2023/12/02 Release 1.1.23
+* Bug fix: key-value #LF at the end of value
+## 2023/12/02 Release 1.1.22
+* Simple key-value configurations
 ## 2023/02/07 Release 1.1.9
 * Use MD5 checksum for compare firmware version of the device
 

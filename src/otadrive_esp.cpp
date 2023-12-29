@@ -93,23 +93,24 @@ bool otadrive_ota::download(Client &client, String url, File *file, String *outS
         {
             if (file)
             {
-                int n = 0, rem = http.total_len;
+                unsigned int n = 0, rem = http.total_len;
                 unsigned long t0 = millis();
                 uint8_t wbuf[256];
-                while (rem && ((millis() - t0) < 15000))
+                while (millis() - t0 < 15000 && rem > 0)
                 {
                     int len = sizeof(wbuf);
+                    if (len > rem)
+                        len = rem;
                     if (http.client.available() < len)
                         len = http.client.available();
                     int rd = http.client.readBytes(wbuf, len);
-                    if (rd == 0)
-                        continue;
                     n = file->write(wbuf, rd);
-                    rem -= n;
+                    rem -= rd;
                     otd_log_v("%d/%d rem : %s", rem, http.total_len, file->name());
                 }
 
                 otd_log_i("%d/%d bytes downloaded and writted to file : %s", rem, http.total_len, file->name());
+                file->close();
                 return true;
             }
 

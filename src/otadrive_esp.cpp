@@ -97,7 +97,10 @@ bool otadrive_ota::download(Client &client, String url, File *file, String *outS
                 uint8_t wbuf[256];
                 while (http.client.available())
                 {
-                    int rd = http.client.readBytes(wbuf, sizeof(wbuf));
+                    int len = sizeof(wbuf);
+                    if (http.client.available() < len)
+                        len = http.client.available();
+                    int rd = http.client.readBytes(wbuf, len);
                     n += file->write(wbuf, rd);
                 }
 

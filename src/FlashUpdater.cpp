@@ -279,7 +279,7 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
         size_t rd;
         if (remain_get)
         {
-            if(remain_get < BUF_SIZE)
+            if (remain_get < BUF_SIZE)
                 rd = http.client.readBytes(tmp_buf, remain_get);
             else
                 rd = http.client.readBytes(tmp_buf, BUF_SIZE);
@@ -287,32 +287,27 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
         }
         else
         {
-            if (remain > GET_SIZE)
+            size_t req_size = GET_SIZE;
+            if (remain < GET_SIZE)
+                req_size = remain;
+
+            for (uint8_t t = 0;; t++)
             {
-                for (uint8_t t = 0; t < 3; t++)
+                if (t == 3)
                 {
-                    if (http.get("", i, GET_SIZE))
-                        break;
+                    otd_log_e("Update.HTTP GET failed!");
+                    return false;
                 }
-                rd = http.client.readBytes(tmp_buf, BUF_SIZE);
-                remain_get = GET_SIZE - BUF_SIZE;
+                if (!http.get("", i, req_size))
+                    continue;
+
+                rd = 0;
+                remain_get = GET_SIZE;
+                break;
             }
-            else
-            {
-                for (uint8_t t = 0; t < 3; t++)
-                {
-                    if (http.get("", i, remain))
-                        break;
-                }
-                if (remain > BUF_SIZE)
-                    rd = http.client.readBytes(tmp_buf, BUF_SIZE);
-                else
-                    rd = http.client.readBytes(tmp_buf, remain);
-                remain_get = remain - rd;
-            }
+            continue;
         }
 
-        remain -= rd;
         if (rd == 0)
         {
             // Update.printError(error);
@@ -322,6 +317,7 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
             // return false;
             continue;
         }
+        remain -= rd;
 
         md5c.add(tmp_buf, rd);
         if (Update.write(tmp_buf, rd) != rd)
@@ -334,7 +330,7 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
         }
 
         i += rd;
-        
+
         if (_cbProgress)
         {
             _cbProgress(i, http.total_len);

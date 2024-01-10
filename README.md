@@ -188,6 +188,8 @@ if(OTADRIVE.timeTick(300))
 }
 ```
 # Changes History
+## 2023/12/30 Release 1.1.28
+* `setChipId` method added
 ## 2023/12/30 Release 1.1.27
 * GPRS bug fix
 ## 2023/12/02 Release 1.1.23

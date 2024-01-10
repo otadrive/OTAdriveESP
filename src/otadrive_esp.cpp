@@ -54,12 +54,24 @@ String otadrive_ota::baseParams()
 }
 
 /**
+ * @brief Use this only if you sure to change the default chip uid. It could burn your device tickets on the OTAdrive.
+ *
+ * @param id Your unique id for this device
+ */
+void otadrive_ota::setChipId(String id)
+{
+    force_chipId = id;
+}
+
+/**
  * Returns your chip ID
  *
  * @return string of your unique chipID
  */
 String otadrive_ota::getChipId()
 {
+    if (!force_chipId.isEmpty())
+        return force_chipId;
 #ifdef ESP8266
     return String(ESP.getChipId());
 #elif defined(ESP32)

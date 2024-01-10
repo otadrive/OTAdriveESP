@@ -69,6 +69,7 @@ private:
     String downloadResourceList(Client &client);
 
     static void updateFirmwareProgress(int progress, int totalt);
+    String force_chipId;
 
 public:
     String ProductKey;
@@ -80,6 +81,7 @@ public:
     otadrive_ota();
     void setInfo(String ApiKey, String Version);
     String getChipId();
+    void setChipId(String id);
     void useSSL(bool ssl);
     
     bool sendAlive();

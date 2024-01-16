@@ -221,8 +221,8 @@ FotaResult FlashUpdater::handleUpdate(Client &client, const String &url)
     return ret;
 }
 
-#define BUF_SIZE 1024 * 1
-#define GET_SIZE 1024 * 128
+#define BUF_SIZE SPI_FLASH_SEC_SIZE * 1
+#define GET_SIZE SPI_FLASH_SEC_SIZE * 8
 /**
  * write Update to flash
  * @param in Stream&
@@ -314,8 +314,8 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
             // error.trim(); // remove line ending
             otd_log_e("read from stream failed!\n");
             remain_get = 0;
-            // return false;
-            continue;
+            return false;
+            // continue;
         }
         remain -= rd;
 

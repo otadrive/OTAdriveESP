@@ -188,6 +188,8 @@ if(OTADRIVE.timeTick(300))
 }
 ```
 # Changes History
+## 2024/03/22 Release 1.1.30
+* Bug fix in MD5 matching
 ## 2024/01/16 Release 1.1.29
 * Improve downloading via GSM
 ## 2023/12/30 Release 1.1.28

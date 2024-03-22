@@ -345,10 +345,9 @@ updateInfo otadrive_ota::updateFirmwareInfo(Client &client)
     inf.code = update_result::ConnectError;
 
     OTAdrive_ns::TinyHTTP http(client, _useSSL);
-
-    OTAdrive_ns::FlashUpdater updater;
-    updater.MD5_Match = MD5_Match;
     http.user_headers = OTAdrive_ns::FlashUpdater::createHeaders();
+    if (MD5_Match)
+        http.user_headers += "\r\nx-check-sketch-md5: 1";
 
     if (!http.get(url, 0, 0))
     {

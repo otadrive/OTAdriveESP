@@ -7,6 +7,7 @@
 #include "otadrive_cert.h"
 #include "FlashUpdater.h"
 #include "types.h"
+#include "coap_channel.h"
 
 #ifdef ESP8266
 #include <LittleFS.h>
@@ -19,16 +20,25 @@ using fs::File;
 using fs::FS;
 #endif
 
-#ifndef OTADRIVE_URL
-#define OTADRIVE_URL "http://otadrive.com/deviceapi/"
+#ifndef OTADRIVE_HOST
+#define OTADRIVE_HOST "otadrive.com"
 #endif
-#define OTADRIVE_SDK_VER "22"
+
+#ifndef OTADRIVE_URL
+#define OTADRIVE_URL "http://" OTADRIVE_HOST "/deviceapi/"
+#endif
+
+#ifndef OTADRIVE_UDP_PORT
+#define OTADRIVE_UDP_PORT 5683
+#endif
+#define OTADRIVE_SDK_VER "31"
 
 class otadrive_ota;
 class updateInfo;
 
 class updateInfo : public Printable
 {
+
     const char *code_str() const;
     String old_version;
 
@@ -54,15 +64,21 @@ class device_status
 
 class otadrive_ota
 {
+    friend class otadrive_coap; // declared in the base class
+
 private:
     uint32_t tickTimestamp = 0;
     const uint16_t TIMEOUT_MS = 10000;
     bool MD5_Match = true;
     bool _useSSL;
+    byte ApiKeyBin[16];
+    byte deviceHash[16];
 
     String cutLine(String &str);
     String serverUrl(String uri);
     String baseParams();
+    void makeDeviceHash();
+    void makeApiKeyBin();
     bool download(Client &client, String url, File *file, String *outStr);
     // update_result head(String url, String &resultStr, const char *reqHdrs[1], uint8_t reqHdrsCount);
     String file_md5(File &f);
@@ -70,6 +86,7 @@ private:
 
     static void updateFirmwareProgress(int progress, int totalt);
     String force_chipId;
+    
 
 public:
     String ProductKey;
@@ -78,12 +95,14 @@ public:
     typedef std::function<void(size_t, size_t)> THandlerFunction_Progress;
     FS *fileObj;
 
+    otadrive_coap coap;
+
     otadrive_ota();
     void setInfo(String ApiKey, String Version);
     String getChipId();
     void setChipId(String id);
     void useSSL(bool ssl);
-    
+
     bool sendAlive();
     bool sendAlive(Client &client);
 
@@ -98,9 +117,9 @@ public:
     bool syncResources(Client &client);
     void setFileSystem(FS *fileObj);
 
-    [[deprecated("Use getJsonConfigs().")]]    
+    [[deprecated("Use getJsonConfigs().")]]
     String getConfigs();
-    [[deprecated("Use getJsonConfigs(Client).")]]    
+    [[deprecated("Use getJsonConfigs(Client).")]]
     String getConfigs(Client &client);
 
     String getJsonConfigs();

@@ -2,6 +2,8 @@
 #include "FlashUpdater.h"
 #include "tinyHTTP.h"
 
+#include <MD5Builder.h>
+
 #ifdef ESP32
 #include <esp_task_wdt.h>
 #endif
@@ -24,6 +26,36 @@ void otadrive_ota::setInfo(String ApiKey, String Version)
 {
     this->ProductKey = ApiKey;
     this->Version = Version;
+
+    makeApiKeyBin();
+    makeDeviceHash();
+}
+
+void otadrive_ota::makeApiKeyBin()
+{
+    char tmp[8] = {0};
+    String ak = ProductKey;
+    ak.replace("-", "");
+    const char *aptr = ak.c_str();
+
+    for (int i = 0; i < 32; i += 2)
+    {
+        memcpy(tmp, &aptr[i], 2);
+        byte b = strtol(tmp, NULL, 16);
+        ApiKeyBin[i / 2] = b;
+    }
+}
+
+void otadrive_ota::makeDeviceHash()
+{
+    String did = OTADRIVE.getChipId();
+    did.toLowerCase();
+    MD5Builder md5;
+    md5.begin();
+    md5.add(ApiKeyBin, 16);
+    md5.add(did.c_str());
+    md5.calculate();
+    md5.getBytes(deviceHash);
 }
 
 void otadrive_ota::useSSL(bool ssl)

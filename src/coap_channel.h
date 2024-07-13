@@ -18,7 +18,7 @@ private:
     bool keys_generated = false;
     unsigned char shared_secret_client[32];
     mbedtls_aes_context aes;
-    WiFiUDP udp;
+    
 
     void print_hex(const char *title, const unsigned char *data, size_t len);
     void print_mbedtls_error(int ret);

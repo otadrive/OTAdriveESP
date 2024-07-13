@@ -1,13 +1,13 @@
 #include "coap_channel.h"
 #include "otadrive_esp.h"
-
+WiFiUDP udp;
 otadrive_coap::otadrive_coap()
 {
 }
 
 bool otadrive_coap::begin()
 {
-    udp.begin(5683);
+    return udp.begin(OTADRIVE_UDP_PORT);
 }
 
 void otadrive_coap::print_hex(const char *title, const unsigned char *data, size_t len)
@@ -43,9 +43,9 @@ int otadrive_coap::udpRequest(char *req, size_t reqSize, char *resp, size_t resp
     if (resp == NULL)
         return 0;
 
-    udp.setTimeout(2000);
+    udp.setTimeout(10000);
 
-    for (int w = 0; w < 2000; w++)
+    for (int w = 0; w < 10000; w++)
     {
         if (udp.parsePacket())
         {

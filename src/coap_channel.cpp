@@ -12,12 +12,14 @@ bool otadrive_coap::begin()
 
 void otadrive_coap::print_hex(const char *title, const unsigned char *data, size_t len)
 {
+#ifdef OTD_COAP_DEBUG
     Serial.printf("%s: ", title);
     for (size_t i = 0; i < len; i++)
     {
         Serial.printf("%02X", data[i]);
     }
     Serial.printf("\n");
+#endif
 }
 
 void otadrive_coap::print_mbedtls_error(int ret)
@@ -62,14 +64,17 @@ int otadrive_coap::udpRequest(char *req, size_t reqSize, char *resp, size_t resp
 
 void otadrive_coap::print_mpi(const char *title, const mbedtls_mpi *a)
 {
+#ifdef OTD_COAP_DEBUG
     char str[200];
     size_t olen2;
     print_mbedtls_error(mbedtls_mpi_write_string(a, 0x10, str, sizeof(str), &olen2));
     log_i("%s (%d): %s", title, olen2, str);
+#endif
 }
 
 void otadrive_coap::print_ecp(const char *title, mbedtls_ecp_point *Q)
 {
+#ifdef OTD_COAP_DEBUG
     char t[32];
     sprintf(t, "%s Q.X", title);
     print_mpi(t, &Q->X);
@@ -79,9 +84,10 @@ void otadrive_coap::print_ecp(const char *title, mbedtls_ecp_point *Q)
 
     sprintf(t, "%s Q.Z", title);
     print_mpi(t, &Q->Z);
+#endif
 }
 
-int otadrive_coap::sayHello(bool forceRenew)
+int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const char *publicKey)
 {
     if (keys_generated && !forceRenew)
         return 0;
@@ -90,6 +96,7 @@ int otadrive_coap::sayHello(bool forceRenew)
     char cmd[200];
     int msgKeyIndex;
     int ret = 0;
+    bool fixedKeysMode = false;
     size_t olen, olen2;
 
     mbedtls_ecdh_context ecdh_client;
@@ -126,11 +133,11 @@ int otadrive_coap::sayHello(bool forceRenew)
         msgKeyIndex = i;
     }
 
-    if (keys_generated && 0)
+    if (keys_generated)
     {
         log_i("Keys available");
 
-        // TODO: Just send public key to the server
+        // Just send public key to the server
         // [48-113] Public Key Prefix-X-Y (1 X32 Y32)
         memcpy(&cmd[msgKeyIndex], udpPublicKey, 32);
         print_hex("cmd", (uint8_t *)cmd, msgKeyIndex + 32);
@@ -140,6 +147,12 @@ int otadrive_coap::sayHello(bool forceRenew)
             return 1;
 
         return 0;
+    }
+
+    if (privateKey != NULL && publicKey != NULL)
+    {
+        log_i("Fixed keys mode");
+        fixedKeysMode = true;
     }
 
     do
@@ -158,11 +171,36 @@ int otadrive_coap::sayHello(bool forceRenew)
         if (ret)
             break;
 
-        log_i("init group nbits:%d T_size:%d", ecdh_client.grp.nbits, ecdh_client.grp.T_size);
-        log_i("gen keys");
-        print_mbedtls_error(ret = mbedtls_ecdh_gen_public(&ecdh_client.grp, &ecdh_client.d, &ecdh_client.Q, mbedtls_ctr_drbg_random, &ctr_drbg));
-        if (ret)
-            break;
+        if (!fixedKeysMode)
+        {
+            log_i("init group nbits:%d T_size:%d", ecdh_client.grp.nbits, ecdh_client.grp.T_size);
+            log_i("gen keys");
+            print_mbedtls_error(ret = mbedtls_ecdh_gen_public(&ecdh_client.grp, &ecdh_client.d, &ecdh_client.Q, mbedtls_ctr_drbg_random, &ctr_drbg));
+            if (ret)
+                break;
+
+            mbedtls_ecp_point_write_binary(&ecdh_client.grp, &ecdh_client.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, (uint8_t *)buf, 200);
+            log_i("len %d", olen);
+            print_hex("Q export", (uint8_t *)buf, olen);
+            mbedtls_mpi_write_binary(&ecdh_client.d, (uint8_t *)buf, 200);
+            print_hex("d export", (uint8_t *)buf, ecdh_client.d.n);
+        }
+        else
+        {
+            print_mbedtls_error(ret = mbedtls_ecp_point_read_string(&ecdh_client.Q, 16, (const char *)publicKey, ""));
+            if (ret)
+            {
+                log_e("wrong public key");
+                break;
+            }
+
+            print_mbedtls_error(ret = mbedtls_mpi_read_string(&ecdh_client.d, 16, (const char *)privateKey));
+            if (ret)
+            {
+                log_e("wrong private key");
+                break;
+            }
+        }
 
         print_mbedtls_error(ret = mbedtls_ecp_point_write_binary(&ecdh_client.grp, &ecdh_client.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, udpPublicKey, 32));
         if ((olen != 32 && olen != 65) || ret) // 65 BP256
@@ -189,12 +227,9 @@ int otadrive_coap::sayHello(bool forceRenew)
             break;
         }
 
+        if (true)
+            sprintf(&buf[11], "\x23\x98\xDA\x44\x08\xD5\x1E\xE4\x3D\xF2\x92\x16\x29\xB9\xEE\x43\x20\xAC\x6D\x86\x8B\x23\xB0\xA8\x18\x20\x54\xE3\x9C\x80\x63\x1D");
         print_mbedtls_error(ret = mbedtls_ecp_point_read_binary(&ecdh_client.grp, &ecdh_client.Qp, (uint8_t *)buf + 11, 32));
-
-        // sprintf(buf, "\x04\x4E\x43\xB9\x18\x57\xBD\x5B\xB2\x55\x7C\x56\xCB\xE6\x30\x99\x80\x76\xDA\xD8\x77\x92\xDB\xF1\x82\x99\xB2\x63\xE3\x2D\x15\xDA\x33\x5B\x85\xA8\xF0\x9D\x54\x3E\xCF\x0A\x70\x39\xF5\xBA\xC8\xEB\x3E\x88\xFA\x90\xCD\xCA\xE5\x68\xCD\x15\x7E\x5B\x1D\xDC\xC5\x36\x09");
-        // if (n == 79 && buf[10 + 3] == 0x41)
-        // print_mbedtls_error(ret = mbedtls_ecp_point_read_binary(&ecdh_client.grp, &ecdh_client.Qp, (uint8_t *)buf + 11, 65));
-        // print_mbedtls_error(ret = mbedtls_ecp_point_read_binary(&ecdh_client.grp, &ecdh_client.Qp, (uint8_t *)buf + 11, 32));
 
         if (ret)
             break;
@@ -237,8 +272,8 @@ int otadrive_coap::makeSecureBlock(const uint8_t *input_data, uint8_t *encrypted
         if (ret)
             break;
 
-        // print_hex("Encrypted Data", encrypted_data, 16);
-        // print_hex("Encrypted Key", shared_secret_client, 32);
+        print_hex("Encrypted Data", encrypted_data, 16);
+        print_hex("Encrypted Key", shared_secret_client, 32);
     } while (false);
 
     return ret;
@@ -262,7 +297,13 @@ int otadrive_coap::putLog(char *data)
     if (!keys_generated)
         return 1;
 
-    size_t len = strlen(data);
+    String logTxt = " ";
+    logTxt += data;
+    // limit to maximum length
+    logTxt.substring(850);
+
+    size_t len = logTxt.length();
+
     char cmd[32] = {0};
     int cmdLen = 0;
     {
@@ -286,7 +327,8 @@ int otadrive_coap::putLog(char *data)
         // [0] Ver
         // [1-16] Device Hash
         // [17-18] Msg len
-        // [18-...] Encrypted Msg
+        // [18] always 0x20 (space)
+        // [19-...] Encrypted Msg
         cmd[i++] = 1; // V1
         memcpy(&cmd[i], OTADRIVE.deviceHash, 16);
         i += 16;

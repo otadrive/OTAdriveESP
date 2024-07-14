@@ -18,7 +18,6 @@ private:
     bool keys_generated = false;
     unsigned char shared_secret_client[32];
     mbedtls_aes_context aes;
-    
 
     void print_hex(const char *title, const unsigned char *data, size_t len);
     void print_mbedtls_error(int ret);
@@ -31,6 +30,6 @@ private:
 public:
     otadrive_coap();
     bool begin();
-    int sayHello(bool forceRenew = 0);
+    int KeyExchange(bool forceRenew = false, const char *privateKey = NULL, const char *publicKey = NULL);
     int putLog(char *data);
 };

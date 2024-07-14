@@ -130,6 +130,9 @@ public:
 
     bool timeTick(uint16_t seconds);
 
+    void beginUdpChannel();
+    int putLog(char *data);
+
 private:
     static THandlerFunction_Progress _progress_callback;
 };

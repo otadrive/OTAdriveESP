@@ -3,22 +3,35 @@
 WiFiUDP udp;
 otadrive_coap::otadrive_coap()
 {
+    mbedtls_aes_init(&aes);
 }
 
 bool otadrive_coap::begin()
 {
-    return udp.begin(OTADRIVE_UDP_PORT);
+    static bool once = false;
+    if (once)
+        return true;
+
+    return once = udp.begin(OTADRIVE_UDP_PORT);
+}
+
+const uint8_t *otadrive_coap::getSharedKey()
+{
+    return sharedKey;
 }
 
 void otadrive_coap::print_hex(const char *title, const unsigned char *data, size_t len)
 {
 #ifdef OTD_COAP_DEBUG
-    Serial.printf("%s: ", title);
+    log_i("%s: ", title);
+    String hex = "";
+    char buf[3];
     for (size_t i = 0; i < len; i++)
     {
-        Serial.printf("%02X", data[i]);
+        sprintf(buf, "%02X", data[i]);
+        hex += buf;
     }
-    Serial.printf("\n");
+    log_i("%s\n", hex.c_str());
 #endif
 }
 
@@ -28,7 +41,7 @@ void otadrive_coap::print_mbedtls_error(int ret)
         return;
     char error_buf[100];
     mbedtls_strerror(ret, error_buf, 100);
-    Serial.printf("Error: %s\n", error_buf);
+    log_e("Error: %s\n", error_buf);
 }
 
 int otadrive_coap::udpRequest(char *req, size_t reqSize, char *resp, size_t respSize)
@@ -87,10 +100,21 @@ void otadrive_coap::print_ecp(const char *title, mbedtls_ecp_point *Q)
 #endif
 }
 
-int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const char *publicKey)
+int otadrive_coap::setSharedKey(const uint8_t sharedKey[32])
+{
+    int ret;
+    keys_generated = true;
+    memcpy(this->sharedKey, sharedKey, sizeof(this->sharedKey));
+    print_mbedtls_error(ret = mbedtls_aes_setkey_enc(&aes, sharedKey, 256));
+
+    return ret;
+}
+
+int otadrive_coap::keyExchange(bool forceRenew)
 {
     if (keys_generated && !forceRenew)
         return 0;
+    const char *pers = "jpiqsE8y89+32^&HJDA";
     const char helloResource[] = "hello";
     char buf[200];
     char cmd[200];
@@ -102,6 +126,8 @@ int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const ch
     mbedtls_ecdh_context ecdh_client;
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
+    uint8_t udpPublicKey[69];
+    uint8_t udpServerPublicKey[69];
 
     {
         // CoAp CON,POST with option 11: 'hello'
@@ -149,12 +175,6 @@ int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const ch
         return 0;
     }
 
-    if (privateKey != NULL && publicKey != NULL)
-    {
-        log_i("Fixed keys mode");
-        fixedKeysMode = true;
-    }
-
     do
     {
         mbedtls_ecdh_init(&ecdh_client);
@@ -171,36 +191,17 @@ int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const ch
         if (ret)
             break;
 
-        if (!fixedKeysMode)
-        {
-            log_i("init group nbits:%d T_size:%d", ecdh_client.grp.nbits, ecdh_client.grp.T_size);
-            log_i("gen keys");
-            print_mbedtls_error(ret = mbedtls_ecdh_gen_public(&ecdh_client.grp, &ecdh_client.d, &ecdh_client.Q, mbedtls_ctr_drbg_random, &ctr_drbg));
-            if (ret)
-                break;
+        log_i("init group nbits:%d T_size:%d", ecdh_client.grp.nbits, ecdh_client.grp.T_size);
+        log_i("gen keys");
+        print_mbedtls_error(ret = mbedtls_ecdh_gen_public(&ecdh_client.grp, &ecdh_client.d, &ecdh_client.Q, mbedtls_ctr_drbg_random, &ctr_drbg));
+        if (ret)
+            break;
 
-            mbedtls_ecp_point_write_binary(&ecdh_client.grp, &ecdh_client.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, (uint8_t *)buf, 200);
-            log_i("len %d", olen);
-            print_hex("Q export", (uint8_t *)buf, olen);
-            mbedtls_mpi_write_binary(&ecdh_client.d, (uint8_t *)buf, 200);
-            print_hex("d export", (uint8_t *)buf, ecdh_client.d.n);
-        }
-        else
-        {
-            print_mbedtls_error(ret = mbedtls_ecp_point_read_string(&ecdh_client.Q, 16, (const char *)publicKey, ""));
-            if (ret)
-            {
-                log_e("wrong public key");
-                break;
-            }
-
-            print_mbedtls_error(ret = mbedtls_mpi_read_string(&ecdh_client.d, 16, (const char *)privateKey));
-            if (ret)
-            {
-                log_e("wrong private key");
-                break;
-            }
-        }
+        mbedtls_ecp_point_write_binary(&ecdh_client.grp, &ecdh_client.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, (uint8_t *)buf, 200);
+        log_i("len %d", olen);
+        print_hex("Q export", (uint8_t *)buf, olen);
+        mbedtls_mpi_write_binary(&ecdh_client.d, (uint8_t *)buf, 200);
+        print_hex("d export", (uint8_t *)buf, ecdh_client.d.n);
 
         print_mbedtls_error(ret = mbedtls_ecp_point_write_binary(&ecdh_client.grp, &ecdh_client.Q, MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, udpPublicKey, 32));
         if ((olen != 32 && olen != 65) || ret) // 65 BP256
@@ -227,7 +228,7 @@ int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const ch
             break;
         }
 
-        if (true)
+        if (false)
             sprintf(&buf[11], "\x23\x98\xDA\x44\x08\xD5\x1E\xE4\x3D\xF2\x92\x16\x29\xB9\xEE\x43\x20\xAC\x6D\x86\x8B\x23\xB0\xA8\x18\x20\x54\xE3\x9C\x80\x63\x1D");
         print_mbedtls_error(ret = mbedtls_ecp_point_read_binary(&ecdh_client.grp, &ecdh_client.Qp, (uint8_t *)buf + 11, 32));
 
@@ -241,12 +242,11 @@ int otadrive_coap::KeyExchange(bool forceRenew, const char *privateKey, const ch
             break;
         print_mpi("shared Z", &ecdh_client.z);
 
-        print_mbedtls_error(ret = mbedtls_mpi_write_binary(&ecdh_client.z, shared_secret_client, sizeof(shared_secret_client)));
+        print_mbedtls_error(ret = mbedtls_mpi_write_binary(&ecdh_client.z, sharedKey, sizeof(sharedKey)));
         if (ret)
             break;
 
-        mbedtls_aes_init(&aes);
-        print_mbedtls_error(ret = mbedtls_aes_setkey_enc(&aes, shared_secret_client, 256));
+        print_mbedtls_error(ret = mbedtls_aes_setkey_enc(&aes, sharedKey, 256));
         if (ret)
             break;
 
@@ -267,13 +267,12 @@ int otadrive_coap::makeSecureBlock(const uint8_t *input_data, uint8_t *encrypted
         return 1;
     do
     {
-
         print_mbedtls_error(ret = mbedtls_aes_crypt_ecb(&aes, MBEDTLS_AES_ENCRYPT, input_data, encrypted_data));
         if (ret)
             break;
 
         print_hex("Encrypted Data", encrypted_data, 16);
-        print_hex("Encrypted Key", shared_secret_client, 32);
+        print_hex("Encrypted Key", sharedKey, 32);
     } while (false);
 
     return ret;
@@ -292,7 +291,7 @@ int otadrive_coap::makeSecurePacket(uint8_t *input_data, size_t len, uint8_t *en
     return 0;
 }
 
-int otadrive_coap::putLog(char *data)
+int otadrive_coap::putLog(const char *data)
 {
     if (!keys_generated)
         return 1;

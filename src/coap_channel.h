@@ -11,12 +11,10 @@
 
 class otadrive_coap
 {
+    friend class otadrive_ota;
 private:
-    const char *pers = "jpiqsE8y89+32^&HJDA";
-    uint8_t udpPublicKey[69];
-    uint8_t udpServerPublicKey[69];
     bool keys_generated = false;
-    unsigned char shared_secret_client[32];
+    unsigned char sharedKey[32];
     mbedtls_aes_context aes;
 
     void print_hex(const char *title, const unsigned char *data, size_t len);
@@ -30,6 +28,8 @@ private:
 public:
     otadrive_coap();
     bool begin();
-    int KeyExchange(bool forceRenew = false, const char *privateKey = NULL, const char *publicKey = NULL);
-    int putLog(char *data);
+    int keyExchange(bool forceRenew = false);
+    int setSharedKey(const uint8_t sharedKey[32]);
+    const uint8_t* getSharedKey();
+    int putLog(const char *data);
 };

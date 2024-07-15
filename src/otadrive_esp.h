@@ -86,7 +86,6 @@ private:
 
     static void updateFirmwareProgress(int progress, int totalt);
     String force_chipId;
-    
 
 public:
     String ProductKey;
@@ -130,8 +129,10 @@ public:
 
     bool timeTick(uint16_t seconds);
 
-    void beginUdpChannel();
-    int putLog(char *data);
+    int coapBegin();
+    int coapBegin(uint8_t *storageBuf, size_t *olen);
+    int coapBegin(int EEADDR);
+    int coapPutLog(char *data);
 
 private:
     static THandlerFunction_Progress _progress_callback;

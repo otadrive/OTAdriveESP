@@ -545,3 +545,86 @@ bool otadrive_ota::timeTick(uint16_t seconds)
     }
     return false;
 }
+
+uint32_t DJB2_hash(const uint8_t *str, size_t len)
+{
+    uint32_t hash = 5381;
+    uint8_t c;
+    while (len)
+    {
+        c = *str++;
+        len--;
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+    return hash;
+}
+
+int otadrive_ota::coapBegin()
+{
+    if (coap.keys_generated)
+        return 0;
+    if (!coap.begin())
+        return 1;
+    return coap.keyExchange();
+}
+#include <EEPROM.h>
+
+int otadrive_ota::coapBegin(uint8_t *storageBuf, size_t *olen)
+{
+    *olen = 0;
+    if (coap.keys_generated)
+        return 0;
+
+    if (!coap.begin())
+        return 1;
+    uint8_t *buf = storageBuf;
+    uint32_t crc = DJB2_hash(buf, 32);
+    uint32_t crcBuf = buf[32] | (buf[33] << 8) | (buf[34] << 16) | (buf[35] << 24);
+    log_i("crc %08X %08X", crc, crcBuf);
+    if (crc == crcBuf)
+        return coap.setSharedKey(buf);
+
+    int ret = coap.keyExchange();
+    if (ret != 0)
+        return ret;
+    const uint8_t *key = coap.getSharedKey();
+    crc = DJB2_hash(key, 32);
+    buf[32] = crc;
+    buf[33] = crc >> 8;
+    buf[34] = crc >> 16;
+    buf[35] = crc >> 24;
+    memcpy(buf, key, 32);
+    *olen = 32;
+    return 0;
+}
+
+int otadrive_ota::coapBegin(int EEADDR)
+{
+    if (coap.keys_generated)
+        return 0;
+
+    if (!coap.begin())
+        return 1;
+
+    size_t olen;
+    uint8_t buf[64];
+    if (EEPROM.readBytes(EEADDR, buf, 48) != 48)
+        return 2;
+
+    int ret = coapBegin(buf, &olen);
+
+    if (olen)
+    {
+        if (EEPROM.writeBytes(EEADDR, buf, 48) != 48)
+            return 3;
+
+        if (!EEPROM.commit())
+            return 4;
+    }
+    return 0;
+}
+
+int otadrive_ota::coapPutLog(char *data)
+{
+    return coap.putLog(data);
+}

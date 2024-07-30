@@ -107,6 +107,7 @@ int otadrive_coap::setSharedKey(const uint8_t sharedKey[32])
     memcpy(this->sharedKey, sharedKey, sizeof(this->sharedKey));
     print_mbedtls_error(ret = mbedtls_aes_setkey_enc(&aes, sharedKey, 256));
 
+    print_hex("shared key", sharedKey, 32);
     return ret;
 }
 
@@ -220,11 +221,15 @@ int otadrive_coap::keyExchange(bool forceRenew)
         int n = udpRequest(cmd, msgKeyIndex + 32, buf, sizeof(buf));
         log_i("udp result:%d", n);
         if (n != 79 && n != 43)
+        {
+            ret = 1;
             break;
+        }
 
         if (strncmp(&buf[6], "hello", 5))
         {
             log_i("udp bad resp");
+            ret = 1;
             break;
         }
 

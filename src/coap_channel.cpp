@@ -1,5 +1,8 @@
 #include "coap_channel.h"
 #include "otadrive_esp.h"
+
+#define MAX_LOG_TXT_LENGTH 850
+
 WiFiUDP udp;
 otadrive_coap::otadrive_coap()
 {
@@ -296,17 +299,25 @@ int otadrive_coap::makeSecurePacket(uint8_t *input_data, size_t len, uint8_t *en
     return 0;
 }
 
+
 int otadrive_coap::putLog(const char *data)
 {
     if (!keys_generated)
         return 1;
 
-    String logTxt = " ";
-    logTxt += data;
-    // limit to maximum length
-    logTxt.substring(850);
+    size_t len = strlen(data);
+    if (len > MAX_LOG_TXT_LENGTH)
+        len = MAX_LOG_TXT_LENGTH;
+    len += 2;
 
-    size_t len = logTxt.length();
+    char *logTxt;
+    logTxt = (char *)malloc(len + 1); // Null at the end
+
+    // append prefixes
+    logTxt[0] = ' ';
+    logTxt[1] = 'I';
+    // copy and limit to maximum length
+    strncpy(logTxt + 2, data, len - 2);
 
     char cmd[32] = {0};
     int cmdLen = 0;
@@ -342,7 +353,8 @@ int otadrive_coap::putLog(const char *data)
     size_t outLen = ((len / 16) + 1) * 16;
     uint8_t *encrypted_data;
     encrypted_data = (uint8_t *)malloc(outLen);
-    makeSecurePacket((uint8_t *)data, len, encrypted_data);
+    makeSecurePacket((uint8_t *)logTxt, len, encrypted_data);
+    free(logTxt);
 
     udp.beginPacket(OTADRIVE_HOST, OTADRIVE_UDP_PORT);
     udp.write((uint8_t *)cmd, cmdLen); // cmd: v1, post log msg
@@ -352,5 +364,6 @@ int otadrive_coap::putLog(const char *data)
     udp.endPacket();
 
     free(encrypted_data);
+    
     return 0;
 }

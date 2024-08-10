@@ -357,7 +357,9 @@ int otadrive_coap::putLog(const char *data)
     free(logTxt);
 
     udp.beginPacket(OTADRIVE_HOST, OTADRIVE_UDP_PORT);
-    udp.write((uint8_t *)cmd, cmdLen); // cmd: v1, post log msg
+    // cmd: coap header packet to /log resource
+    udp.write((uint8_t *)cmd, cmdLen);
+    // body: len, text
     udp.write((len >> 8) & 0xff);
     udp.write((len >> 0) & 0xff);
     udp.write(encrypted_data, outLen);

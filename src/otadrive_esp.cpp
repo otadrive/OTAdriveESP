@@ -281,7 +281,11 @@ bool otadrive_ota::sendAlive(Client &client)
 updateInfo otadrive_ota::updateFirmware(Client &client, bool reboot)
 {
 #ifdef ESP32
+#if ESP_IDF_VERSION < 0x050000
     esp_task_wdt_init(45, true);
+    #else
+#endif
+#warning IDF version 5+ uses new watchdog APIs. We strongly suggest you test OTA functionalities before publishing this version.
 #endif
     updateInfo inf = updateFirmwareInfo(client);
     if (!inf.available)
@@ -334,7 +338,10 @@ updateInfo otadrive_ota::updateFirmware(bool reboot)
 {
     WiFiClient client;
 #ifdef ESP32
+#if ESP_IDF_VERSION < 0x050000
     esp_task_wdt_init(45, true);
+    #else
+#endif
 #endif
     return updateFirmware(client, reboot);
 }
@@ -351,7 +358,10 @@ void otadrive_ota::onUpdateFirmwareProgress(THandlerFunction_Progress fn)
 void otadrive_ota::updateFirmwareProgress(int progress, int totalt)
 {
 #ifdef ESP32
-    esp_task_wdt_reset();
+#if ESP_IDF_VERSION < 0x050000
+    esp_task_wdt_init(45, true);
+    #else
+#endif
 #endif
     if (_progress_callback != nullptr)
         _progress_callback(progress, totalt);

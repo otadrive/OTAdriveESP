@@ -7,6 +7,10 @@
 #include <otadrive_esp.h>
 #include <Update.h>
 #include <WiFi.h>
+#if ESP_IDF_VERSION >= 0x050000
+    #include <spi_flash_mmap.h>
+#endif
+
 
 using namespace OTAdrive_ns;
 

@@ -306,7 +306,7 @@ bool FlashUpdater::runUpdate(TinyHTTP http, int command)
                     continue;
 
                 rd = 0;
-                remain_get = GET_SIZE;
+                remain_get = req_size;
                 break;
             }
             continue;

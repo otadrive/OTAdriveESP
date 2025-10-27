@@ -1,0 +1,46 @@
+OTAdriveESP SDK License Agreement
+Copyright (c) 2025 OTAdrive
+
+This Software Development Kit (the "SDK") is proprietary to OTAdrive and is licensed, not sold, to you ("Licensee") under the terms below.
+
+1. LICENSE GRANT
+
+OTAdrive grants Licensee a limited, non-exclusive, non-transferable, and revocable license to use this SDK solely for the purpose of integrating Licensee’s hardware or software products with OTAdrive’s official cloud services.
+
+2. RESTRICTIONS
+
+Licensee shall not:
+
+(a) use the SDK to connect to, communicate with, or operate any server or service other than OTAdrive’s official servers;
+(b) copy, modify, reverse-engineer, decompile, distribute, sublicense, rent, lease, or otherwise make the SDK available to any third party;
+(c) use the SDK to build, offer, or operate any service or product that competes with OTAdrive.
+
+3. OWNERSHIP
+
+The SDK and all related intellectual property rights are and shall remain the exclusive property of OTAdrive.
+No ownership rights are transferred to Licensee under this Agreement.
+
+4. TERMINATION
+
+This license shall automatically terminate upon:
+(a) Licensee’s breach of any provision of this Agreement;
+(b) expiration or termination of Licensee’s OTAdrive service account or agreement; or
+(c) written notice of termination from OTAdrive.
+
+Upon termination, Licensee must immediately cease all use of the SDK and destroy all copies in their possession or control.
+
+5. DISCLAIMER
+
+The SDK is provided “AS IS” without any warranties, express or implied.
+OTAdrive specifically disclaims all implied warranties, including but not limited to merchantability, fitness for a particular purpose, and non-infringement.
+
+6. LIMITATION OF LIABILITY
+
+To the maximum extent permitted by law, OTAdrive shall not be liable for any indirect, incidental, special, or consequential damages arising out of or related to the use or inability to use the SDK, even if OTAdrive has been advised of the possibility of such damages.
+
+7. GOVERNING LAW
+
+This Agreement shall be governed by and construed in accordance with the laws of England and Wales, unless otherwise required by applicable local law.
+
+For commercial licensing or custom integrations, contact:
+support@otadrive.com

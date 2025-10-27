@@ -188,6 +188,8 @@ if(OTADRIVE.timeTick(300))
 }
 ```
 # Changes History
+## 2025/10/27 Release 1.1.34
+* License added
 ## 2024/08/11 Release 1.1.32
 * Bug fix in Arduino IDE
 ## 2024/08/11 Release 1.1.31
